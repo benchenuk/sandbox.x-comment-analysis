@@ -112,17 +112,19 @@ const analyzeComments = async (comments: XComment[]): Promise<AnalysisResult> =>
 3. Identification of potential bots/trolls
 4. Key insights and sentiment
 
+IMPORTANT: For each comment in categories, include the comment ID to match back to the original data.
+
 Return JSON format only with these fields:
 - summary: string
-- categories: array of {name, icon, comments}
+- categories: array of {name, icon, comments} where comments have: {id, text, author}
 - filteredCount: number (bots/trolls filtered)
 - analyzedCount: number (total analyzed)`
           },
           {
             role: 'user',
             content: `Analyze these ${comments.length} comments from an X/Twitter thread:\n\n${
-              comments.map((c, i) => 
-                `${i + 1}. ${c.author}: "${c.text}" (❤️ ${c.likes} 🔄 ${c.reposts})`
+              comments.map((c) => 
+                `ID:${c.id} | ${c.author}: "${c.text}" (Likes: ${c.likes}, Reposts: ${c.reposts})`
               ).join('\n')
             }`
           }
@@ -173,13 +175,40 @@ Return JSON format only with these fields:
         // Try to parse JSON from content
         try {
           const parsed = JSON.parse(content)
+          
+          // Process categories - ensure comments have full data
+          const processedCategories = (parsed.categories || []).map((cat: any) => ({
+            name: cat.name || 'Uncategorized',
+            icon: cat.icon || '',
+            comments: (cat.comments || []).map((comment: any) => {
+              // If comment has an id, try to find the original comment data
+              if (comment.id) {
+                const originalComment = comments.find(c => c.id === comment.id)
+                if (originalComment) {
+                  return { ...originalComment, category: cat.name }
+                }
+              }
+              // Otherwise use the comment data as-is if it has text
+              if (comment.text) {
+                return comment
+              }
+              // Fallback: return a placeholder
+              return null
+            }).filter(Boolean)
+          })).filter((cat: any) => cat.comments.length > 0)
+          
+          // If no valid categories, create a default one with all comments
+          if (processedCategories.length === 0) {
+            processedCategories.push({
+              name: 'All Comments',
+              icon: '',
+              comments: comments.slice(0, 10)
+            })
+          }
+          
           analysisData = {
             summary: parsed.summary || 'Analysis completed',
-            categories: parsed.categories || [{
-              name: 'General Discussion',
-              icon: '💬',
-              comments: comments.slice(0, 5).map(c => ({ ...c, category: 'general' }))
-            }],
+            categories: processedCategories,
             stats: {
               totalComments: comments.length,
               filteredComments: parsed.filteredCount || 0,
@@ -192,8 +221,8 @@ Return JSON format only with these fields:
             summary: content,
             categories: [{
               name: 'All Comments',
-              icon: '💬',
-              comments: comments.slice(0, 10).map(c => ({ ...c, category: 'general' }))
+              icon: '',
+              comments: comments.slice(0, 10)
             }],
             stats: {
               totalComments: comments.length,
@@ -204,13 +233,34 @@ Return JSON format only with these fields:
         }
       } else {
         // Direct API response format
+        const processedCategories = (data.categories || []).map((cat: any) => ({
+          name: cat.name || 'Uncategorized',
+          icon: cat.icon || '',
+          comments: (cat.comments || []).map((comment: any) => {
+            if (comment.id) {
+              const originalComment = comments.find(c => c.id === comment.id)
+              if (originalComment) {
+                return { ...originalComment, category: cat.name }
+              }
+            }
+            if (comment.text) {
+              return comment
+            }
+            return null
+          }).filter(Boolean)
+        })).filter((cat: any) => cat.comments.length > 0)
+        
+        if (processedCategories.length === 0) {
+          processedCategories.push({
+            name: 'All Comments',
+            icon: '',
+            comments: comments.slice(0, 10)
+          })
+        }
+        
         analysisData = {
           summary: data.summary || 'Analysis completed',
-          categories: data.categories || [{
-            name: 'General Discussion',
-            icon: '💬',
-            comments: comments.slice(0, 5).map(c => ({ ...c, category: 'general' }))
-          }],
+          categories: processedCategories,
           stats: {
             totalComments: comments.length,
             filteredComments: data.filteredCount || 0,

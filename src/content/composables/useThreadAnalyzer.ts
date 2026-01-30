@@ -152,7 +152,7 @@ export function useThreadAnalyzer() {
     // Sort by engagement (highest first) and take top 50
     return comments
       .sort((a, b) => (b.engagement || 0) - (a.engagement || 0))
-      .slice(0, 50)
+      .slice(0, 35)
   }
 
   /**

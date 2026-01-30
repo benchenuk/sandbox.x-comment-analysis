@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "X Thread Analyzer",
+  "name": "Comment Analysis",
   "version": "1.0.0",
-  "description": "Analyze X/Twitter threads using LLM to categorize, summarize, and filter comments",
+  "description": "Analyze X/Twitter thread comments using AI to categorize, summarize, and filter",
   "permissions": [
     "activeTab",
     "storage"

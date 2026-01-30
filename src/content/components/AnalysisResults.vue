@@ -89,8 +89,7 @@ h3 {
 }
 
 .summary-section {
-  background: linear-gradient(135deg, var(--x-bg-secondary, #f7f9f9) 0%, var(--x-bg-primary, #ffffff) 100%);
-  border-left: 3px solid var(--x-primary, #1d9bf0);
+  background: var(--x-bg-secondary, #f7f9f9);
 }
 
 .summary-content {

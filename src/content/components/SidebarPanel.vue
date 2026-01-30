@@ -1,7 +1,7 @@
 <template>
   <div :class="['sidebar-panel', { 'pinned': isPinned }]">
     <div class="sidebar-header">
-      <h2>Thread Analysis</h2>
+      <h2>Comment Analysis</h2>
       <div class="header-actions">
         <button 
           class="pin-button"
@@ -115,7 +115,7 @@ const getProgressText = (progress: number): string => {
   position: fixed;
   top: 0;
   right: 0;
-  width: 380px;
+  width: 450px;
   height: 100vh;
   background: var(--x-bg-primary, #ffffff);
   border-left: 1px solid var(--x-border, #eff3f4);
