@@ -6,7 +6,6 @@
     </div>
     
     <div class="categories-section" v-if="results.categories.length > 0">
-      <h3>Categories</h3>
       <div class="categories-list">
         <CommentCategory 
           v-for="category in results.categories" 
@@ -97,7 +96,7 @@ h3 {
 }
 
 .categories-section {
-  padding: 12px 16px;
+  padding: 16px;
 }
 
 .categories-list {
