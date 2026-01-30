@@ -116,12 +116,16 @@ x-thread-analyzer/
 ### 8. options/SettingsForm.vue
 **Purpose**: Configuration UI with validation
 **Fields**:
-- API endpoint URL (with format validation)
-- API key (optional, password field)
-- Max comments limit (10-100)
-- Request timeout (5-120 seconds)
-- Theme preference (Auto/Light/Dark)
+- **API Base URL**: Base endpoint (e.g., `https://api.openai.com/v1`)
+  - Auto-appends `/chat/completions` if not present
+  - Accepts full URL or base URL
+- **API Key**: Authentication token (password field)
+- **Model**: AI model name (e.g., `gpt-4`, `gpt-3.5-turbo`)
+- **Max Comments**: Limit comments sent to API (10-100)
+- **Request Timeout**: API call timeout in milliseconds (5-120 seconds)
+- **Theme Preference**: Auto/Light/Dark
 **Features**:
+- Smart URL handling (auto-completes endpoint path)
 - Test connection button (validates API endpoint)
 - Reset to defaults button
 - Form validation
@@ -233,29 +237,10 @@ Show retry button + settings button
 ### Core Types (src/types/index.ts)
 
 ```typescript
-interface XComment {
-  id: string              // Tweet ID for deduplication
-  text: string
-  author: string
-  timestamp: string       // ISO 8601 format
-  displayTime?: string    // Human-readable time
-  likes: number
-  reposts: number
-  replies?: number        // Reply count
-  views: number
-  engagement?: number     // Calculated: likes + reposts + replies
-  category?: string       // Assigned by API
-}
-
-interface AnalysisResult {
-  summary: string
-  categories: Category[]
-  stats: AnalysisStats
-}
-
 interface ExtensionSettings {
-  apiEndpoint: string
+  apiEndpoint: string     // Base URL (e.g., https://api.openai.com/v1)
   apiKey: string
+  model: string           // e.g., 'gpt-4', 'gpt-3.5-turbo'
   maxComments: number     // 10-100
   theme: 'auto' | 'light' | 'dark'
   requestTimeout: number  // 5000-120000ms

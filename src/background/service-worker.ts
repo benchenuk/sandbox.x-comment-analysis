@@ -12,10 +12,33 @@ const getSettings = async () => {
   const result = await chrome.storage.sync.get({
     apiEndpoint: '',
     apiKey: '',
+    model: 'gpt-4',
     maxComments: 50,
     requestTimeout: 30000 // 30 seconds default
   })
   return result
+}
+
+/**
+ * Build full API URL from base endpoint
+ * Auto-appends /chat/completions if not present
+ */
+const buildApiUrl = (baseEndpoint: string): string => {
+  // Remove trailing slash if present
+  let url = baseEndpoint.trim().replace(/\/$/, '')
+  
+  // If URL doesn't end with /chat/completions, append it
+  if (!url.endsWith('/chat/completions')) {
+    // Check if it ends with /v1, if so append /chat/completions
+    if (url.endsWith('/v1')) {
+      url = `${url}/chat/completions`
+    } else {
+      // Assume it's a base URL and append the full path
+      url = `${url}/v1/chat/completions`
+    }
+  }
+  
+  return url
 }
 
 /**
@@ -79,7 +102,7 @@ const analyzeComments = async (comments: XComment[]): Promise<AnalysisResult> =>
       }
       
       const requestBody = {
-        model: 'gpt-4', // Default model, can be overridden by API
+        model: settings.model || 'gpt-4', // Use configured model or default
         messages: [
           {
             role: 'system',
@@ -108,8 +131,12 @@ Return JSON format only with these fields:
         max_tokens: 2000
       }
       
+      // Build full API URL (auto-appends /chat/completions if needed)
+      const apiUrl = buildApiUrl(settings.apiEndpoint)
+      console.log(`[X Thread Analyzer] Using API URL: ${apiUrl}`)
+      
       const response = await fetchWithTimeout(
-        settings.apiEndpoint,
+        apiUrl,
         {
           method: 'POST',
           headers,
@@ -247,6 +274,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.sync.set({
       apiEndpoint: '',
       apiKey: '',
+      model: 'gpt-4',
       maxComments: 50,
       theme: 'auto',
       requestTimeout: 30000

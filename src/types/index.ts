@@ -35,6 +35,7 @@ export interface AnalysisResult {
 export interface ExtensionSettings {
   apiEndpoint: string
   apiKey: string
+  model: string
   maxComments: number
   theme: 'auto' | 'light' | 'dark'
   requestTimeout: number

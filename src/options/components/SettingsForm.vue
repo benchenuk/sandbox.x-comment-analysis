@@ -4,28 +4,42 @@
       <h3>API Configuration</h3>
       
       <div class="form-group">
-        <label for="apiEndpoint">API Endpoint *</label>
+        <label for="apiEndpoint">API Base URL *</label>
         <input
           id="apiEndpoint"
           v-model="settings.apiEndpoint"
           type="url"
-          placeholder="https://api.openai.com/v1/chat/completions"
+          placeholder="https://api.openai.com/v1"
           required
         />
         <p class="help-text">
-          Your OpenAI-compatible API endpoint (e.g., OpenAI, Azure, or custom endpoint)
+          Base URL for your OpenAI-compatible API. The extension will automatically append <code>/chat/completions</code>.
+          <br>Examples: <code>https://api.openai.com/v1</code>, <code>http://localhost:1234/v1</code>
         </p>
       </div>
 
-      <div class="form-group">
-        <label for="apiKey">API Key</label>
-        <input
-          id="apiKey"
-          v-model="settings.apiKey"
-          type="password"
-          placeholder="sk-..."
-        />
-        <p class="help-text">API key for authentication (required for most endpoints)</p>
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="apiKey">API Key</label>
+          <input
+            id="apiKey"
+            v-model="settings.apiKey"
+            type="password"
+            placeholder="sk-..."
+          />
+          <p class="help-text">API key for authentication</p>
+        </div>
+
+        <div class="form-group half">
+          <label for="model">Model</label>
+          <input
+            id="model"
+            v-model="settings.model"
+            type="text"
+            placeholder="gpt-4"
+          />
+          <p class="help-text">Model name (e.g., gpt-4, gpt-3.5-turbo)</p>
+        </div>
       </div>
 
       <div class="form-row">
@@ -134,6 +148,7 @@ import type { ExtensionSettings } from '../../types'
 const defaultSettings: ExtensionSettings = {
   apiEndpoint: '',
   apiKey: '',
+  model: 'gpt-4',
   maxComments: 50,
   theme: 'auto',
   requestTimeout: 30000
@@ -177,13 +192,29 @@ const resetSettings = async () => {
   }
 }
 
+// Helper to build full API URL (same logic as service worker)
+const buildApiUrl = (baseEndpoint: string): string => {
+  let url = baseEndpoint.trim().replace(/\/$/, '')
+  if (!url.endsWith('/chat/completions')) {
+    if (url.endsWith('/v1')) {
+      url = `${url}/chat/completions`
+    } else {
+      url = `${url}/v1/chat/completions`
+    }
+  }
+  return url
+}
+
 const testConnection = async () => {
   isTesting.value = true
   testResult.value = null
 
   try {
+    // Build full API URL
+    const apiUrl = buildApiUrl(settings.value.apiEndpoint)
+    
     // Simple test request to check if endpoint is reachable
-    const response = await fetch(settings.value.apiEndpoint, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
