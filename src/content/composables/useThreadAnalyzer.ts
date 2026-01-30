@@ -90,6 +90,15 @@ export function useThreadAnalyzer() {
       }
       seenIds.add(tweetId)
       
+      // Check for images/media in the tweet
+      const hasImages = article.querySelector('[data-testid="tweetPhoto"]') !== null ||
+                       article.querySelector('img[src*="pbs.twimg.com"]') !== null
+      
+      if (hasImages) {
+        console.log(`[X Thread Analyzer] Skipping comment ${index} - contains images`)
+        return
+      }
+      
       // Extract text content
       const textEl = article.querySelector('[data-testid="tweetText"]')
       const text = textEl?.textContent?.trim() || ''
@@ -192,9 +201,17 @@ export function useThreadAnalyzer() {
       }
       
       progress.value = 100
-      console.log('[X Thread Analyzer] Analysis complete', response.data)
       
-      return response.data
+      // Log the results for debugging
+      const result = response.data as AnalysisResult
+      const totalInCategories = result.categories?.reduce((sum, cat) => sum + (cat.comments?.length || 0), 0) || 0
+      console.log(`[X Thread Analyzer] Analysis complete:`)
+      console.log(`  - Input comments: ${comments.length}`)
+      console.log(`  - Categories returned: ${result.categories?.length || 0}`)
+      console.log(`  - Total comments in categories: ${totalInCategories}`)
+      console.log(`  - Summary length: ${result.summary?.length || 0} chars`)
+      
+      return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       error.value = errorMessage

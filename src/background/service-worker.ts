@@ -269,7 +269,14 @@ Return JSON format only with these fields:
         }
       }
       
-      console.log('[X Thread Analyzer] API call successful')
+      // Log detailed results
+      const totalInCategories = analysisData.categories.reduce((sum, cat) => sum + cat.comments.length, 0)
+      console.log('[X Thread Analyzer] API call successful:')
+      console.log(`  - Input: ${comments.length} comments`)
+      console.log(`  - Categories: ${analysisData.categories.length}`)
+      console.log(`  - Comments in categories: ${totalInCategories}`)
+      console.log(`  - Filtered: ${analysisData.stats.filteredComments}`)
+      
       return analysisData
       
     } catch (error) {

@@ -16,23 +16,7 @@
       </div>
     </div>
     
-    <div class="stats-section">
-      <h3>Statistics</h3>
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-value">{{ results.stats.totalComments }}</span>
-          <span class="stat-label">Total</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ results.stats.filteredComments }}</span>
-          <span class="stat-label">Filtered</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ results.stats.analyzedComments }}</span>
-          <span class="stat-label">Analyzed</span>
-        </div>
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -72,8 +56,7 @@ const formatSummary = (summary: string): string => {
 }
 
 .summary-section,
-.categories-section,
-.stats-section {
+.categories-section {
   background: var(--x-bg-secondary, #f7f9f9);
   border-radius: 8px;
   padding: 16px;
@@ -120,36 +103,5 @@ h3 {
 .categories-list {
   display: flex;
   flex-direction: column;
-}
-
-.stats-section {
-  padding: 12px 16px;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--x-primary, #1d9bf0);
-}
-
-.stat-label {
-  font-size: 11px;
-  color: var(--x-text-secondary, #536471);
-  margin-top: 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
 </style>
