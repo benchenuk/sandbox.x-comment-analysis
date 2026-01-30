@@ -9,7 +9,9 @@
   ],
   "host_permissions": [
     "https://x.com/*",
-    "https://twitter.com/*"
+    "https://twitter.com/*",
+    "http://localhost:*/",
+    "https://localhost:*/"
   ],
   "content_scripts": [
     {
