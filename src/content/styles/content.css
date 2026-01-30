@@ -1,0 +1,55 @@
+/* X Thread Analyzer - Content Script Styles */
+
+/* CSS Variables for theming */
+.x-analyzer-container {
+  --x-bg-primary: #ffffff;
+  --x-bg-secondary: #f7f9f9;
+  --x-bg-hover: rgba(0, 0, 0, 0.05);
+  --x-text-primary: #0f1419;
+  --x-text-secondary: #536471;
+  --x-border: #eff3f4;
+  --x-primary: #1d9bf0;
+  --x-primary-hover: #1a8cd8;
+  --x-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Dark mode support */
+.x-analyzer-container.dark {
+  --x-bg-primary: #000000;
+  --x-bg-secondary: #16181c;
+  --x-bg-hover: rgba(255, 255, 255, 0.1);
+  --x-text-primary: #e7e9ea;
+  --x-text-secondary: #71767b;
+  --x-border: #2f3336;
+  --x-primary: #1d9bf0;
+  --x-primary-hover: #1a8cd8;
+}
+
+/* Ensure our UI is above X's content */
+#x-thread-analyzer-root {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Global reset for our extension UI */
+.x-analyzer-container * {
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+.x-analyzer-container ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.x-analyzer-container ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.x-analyzer-container ::-webkit-scrollbar-thumb {
+  background: var(--x-border);
+  border-radius: 4px;
+}
+
+.x-analyzer-container ::-webkit-scrollbar-thumb:hover {
+  background: var(--x-text-secondary);
+}

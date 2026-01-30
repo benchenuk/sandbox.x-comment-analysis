@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "X Thread Analyzer",
+  "version": "1.0.0",
+  "description": "Analyze X/Twitter threads using LLM to categorize, summarize, and filter comments",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*/status/*",
+        "https://twitter.com/*/status/*"
+      ],
+      "js": [
+        "src/content/main.ts"
+      ],
+      "css": [
+        "src/content/styles/content.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "options_page": "src/options/index.html",
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/content/styles/content.css"
+      ],
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ]
+    }
+  ]
+}
