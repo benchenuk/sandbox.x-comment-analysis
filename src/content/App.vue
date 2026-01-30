@@ -9,8 +9,11 @@
       v-if="showSidebar"
       :results="analysisResults"
       :is-loading="isAnalyzing"
+      :error="error"
+      :progress="progress"
       @close="showSidebar = false"
       @pin="handlePin"
+      @retry="startAnalysis"
     />
   </div>
 </template>
@@ -24,25 +27,28 @@ import { useThreadAnalyzer } from './composables/useThreadAnalyzer'
 import type { AnalysisResult } from '../types'
 
 const { theme } = useXTheme()
-const { analyzeThread, isAnalyzing } = useThreadAnalyzer()
+const { analyzeThread, isAnalyzing, error, progress } = useThreadAnalyzer()
 
 const showSidebar = ref(false)
 const analysisResults = ref<AnalysisResult | null>(null)
 
 const startAnalysis = async () => {
   showSidebar.value = true
+  analysisResults.value = null
+  
   try {
     analysisResults.value = await analyzeThread()
-  } catch (error) {
-    console.error('Analysis failed:', error)
+  } catch (err) {
+    // Error is already set in the composable
+    console.error('[X Thread Analyzer] Analysis failed:', err)
   }
 }
 
 const handlePin = (pinned: boolean) => {
-  console.log('Sidebar pinned:', pinned)
+  console.log('[X Thread Analyzer] Sidebar pinned:', pinned)
 }
 
 onMounted(() => {
-  console.log('X Thread Analyzer mounted')
+  console.log('[X Thread Analyzer] Extension mounted successfully')
 })
 </script>

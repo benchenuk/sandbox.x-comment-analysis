@@ -1,74 +1,123 @@
 <template>
   <form class="settings-form" @submit.prevent="saveSettings">
-    <div class="form-group">
-      <label for="apiEndpoint">API Endpoint</label>
-      <input
-        id="apiEndpoint"
-        v-model="settings.apiEndpoint"
-        type="url"
-        placeholder="https://api.example.com/v1/analyze"
-        required
-      />
-      <p class="help-text">Your OpenAI-compatible API endpoint for comment analysis</p>
+    <div class="form-section">
+      <h3>API Configuration</h3>
+      
+      <div class="form-group">
+        <label for="apiEndpoint">API Endpoint *</label>
+        <input
+          id="apiEndpoint"
+          v-model="settings.apiEndpoint"
+          type="url"
+          placeholder="https://api.openai.com/v1/chat/completions"
+          required
+        />
+        <p class="help-text">
+          Your OpenAI-compatible API endpoint (e.g., OpenAI, Azure, or custom endpoint)
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKey">API Key</label>
+        <input
+          id="apiKey"
+          v-model="settings.apiKey"
+          type="password"
+          placeholder="sk-..."
+        />
+        <p class="help-text">API key for authentication (required for most endpoints)</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="maxComments">Max Comments</label>
+          <input
+            id="maxComments"
+            v-model.number="settings.maxComments"
+            type="number"
+            min="10"
+            max="100"
+            required
+          />
+          <p class="help-text">10-100 comments</p>
+        </div>
+
+        <div class="form-group half">
+          <label for="requestTimeout">Timeout (ms)</label>
+          <input
+            id="requestTimeout"
+            v-model.number="settings.requestTimeout"
+            type="number"
+            min="5000"
+            max="120000"
+            step="1000"
+            required
+          />
+          <p class="help-text">5-120 seconds</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <button 
+          type="button" 
+          class="test-button"
+          @click="testConnection"
+          :disabled="isTesting || !settings.apiEndpoint"
+        >
+          <span v-if="isTesting" class="spinner"></span>
+          {{ isTesting ? 'Testing...' : 'Test Connection' }}
+        </button>
+        <p v-if="testResult" :class="['test-result', testResult.type]">
+          {{ testResult.message }}
+        </p>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="apiKey">API Key (Optional)</label>
-      <input
-        id="apiKey"
-        v-model="settings.apiKey"
-        type="password"
-        placeholder="sk-..."
-      />
-      <p class="help-text">API key for authentication if required by your endpoint</p>
-    </div>
-
-    <div class="form-group">
-      <label for="maxComments">Max Comments to Analyze</label>
-      <input
-        id="maxComments"
-        v-model.number="settings.maxComments"
-        type="number"
-        min="10"
-        max="100"
-        required
-      />
-      <p class="help-text">Limit the number of comments sent to API (10-100)</p>
-    </div>
-
-    <div class="form-group">
-      <label>Theme Preference</label>
-      <div class="radio-group">
-        <label class="radio-label">
-          <input
-            v-model="settings.theme"
-            type="radio"
-            value="auto"
-          />
-          <span>Auto (Follow X)</span>
-        </label>
-        <label class="radio-label">
-          <input
-            v-model="settings.theme"
-            type="radio"
-            value="light"
-          />
-          <span>Light</span>
-        </label>
-        <label class="radio-label">
-          <input
-            v-model="settings.theme"
-            type="radio"
-            value="dark"
-          />
-          <span>Dark</span>
-        </label>
+    <div class="form-section">
+      <h3>Appearance</h3>
+      
+      <div class="form-group">
+        <label>Theme Preference</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input
+              v-model="settings.theme"
+              type="radio"
+              value="auto"
+            />
+            <span>🌓 Auto (Follow X)</span>
+          </label>
+          <label class="radio-label">
+            <input
+              v-model="settings.theme"
+              type="radio"
+              value="light"
+            />
+            <span>☀️ Light</span>
+          </label>
+          <label class="radio-label">
+            <input
+              v-model="settings.theme"
+              type="radio"
+              value="dark"
+            />
+            <span>🌙 Dark</span>
+          </label>
+        </div>
       </div>
     </div>
 
     <div class="form-actions">
       <button type="submit" class="save-button" :disabled="isSaving">
         {{ isSaving ? 'Saving...' : 'Save Settings' }}
+      </button>
+      <button 
+        type="button" 
+        class="reset-button"
+        @click="resetSettings"
+        :disabled="isSaving"
+      >
+        Reset to Defaults
       </button>
     </div>
 
@@ -82,23 +131,23 @@
 import { ref, onMounted } from 'vue'
 import type { ExtensionSettings } from '../../types'
 
-const settings = ref<ExtensionSettings>({
+const defaultSettings: ExtensionSettings = {
   apiEndpoint: '',
   apiKey: '',
   maxComments: 50,
-  theme: 'auto'
-})
+  theme: 'auto',
+  requestTimeout: 30000
+}
+
+const settings = ref<ExtensionSettings>({ ...defaultSettings })
 
 const isSaving = ref(false)
+const isTesting = ref(false)
 const message = ref<{ type: 'success' | 'error'; text: string } | null>(null)
+const testResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 onMounted(async () => {
-  const result = await chrome.storage.sync.get({
-    apiEndpoint: '',
-    apiKey: '',
-    maxComments: 50,
-    theme: 'auto'
-  })
+  const result = await chrome.storage.sync.get(defaultSettings)
   settings.value = result as ExtensionSettings
 })
 
@@ -109,10 +158,67 @@ const saveSettings = async () => {
   try {
     await chrome.storage.sync.set(settings.value)
     message.value = { type: 'success', text: 'Settings saved successfully!' }
+    
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      message.value = null
+    }, 3000)
   } catch (error) {
     message.value = { type: 'error', text: 'Failed to save settings. Please try again.' }
   } finally {
     isSaving.value = false
+  }
+}
+
+const resetSettings = async () => {
+  if (confirm('Are you sure you want to reset all settings to defaults?')) {
+    settings.value = { ...defaultSettings }
+    await saveSettings()
+  }
+}
+
+const testConnection = async () => {
+  isTesting.value = true
+  testResult.value = null
+
+  try {
+    // Simple test request to check if endpoint is reachable
+    const response = await fetch(settings.value.apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': settings.value.apiKey ? `Bearer ${settings.value.apiKey}` : ''
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 5
+      })
+    })
+
+    if (response.ok) {
+      testResult.value = { 
+        type: 'success', 
+        message: '✓ Connection successful! API is reachable and credentials are valid.' 
+      }
+    } else if (response.status === 401) {
+      testResult.value = { 
+        type: 'error', 
+        message: '✗ Authentication failed. Please check your API key.' 
+      }
+    } else {
+      testResult.value = { 
+        type: 'error', 
+        message: `✗ Connection failed: ${response.status} ${response.statusText}` 
+      }
+    }
+  } catch (error) {
+    testResult.value = { 
+      type: 'error', 
+      message: `✗ Connection error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    }
+  } finally {
+    isTesting.value = false
   }
 }
 </script>
@@ -122,8 +228,30 @@ const saveSettings = async () => {
   padding: 32px;
 }
 
+.form-section {
+  margin-bottom: 32px;
+}
+
+.form-section h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f1419;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eff3f4;
+}
+
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-group.half {
+  flex: 1;
 }
 
 .form-group label {
@@ -160,28 +288,97 @@ const saveSettings = async () => {
 
 .radio-group {
   display: flex;
-  gap: 16px;
+  gap: 24px;
   flex-wrap: wrap;
 }
 
 .radio-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
   font-weight: 400;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.radio-label:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .radio-label input {
   cursor: pointer;
 }
 
+.test-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #f7f9f9;
+  border: 1px solid #cfd9de;
+  border-radius: 9999px;
+  color: #0f1419;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.test-button:hover:not(:disabled) {
+  background: #eff3f4;
+  border-color: #1d9bf0;
+}
+
+.test-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #1d9bf0;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.test-result {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.test-result.success {
+  background: rgba(0, 186, 124, 0.1);
+  color: #00ba7c;
+  border: 1px solid rgba(0, 186, 124, 0.2);
+}
+
+.test-result.error {
+  background: rgba(244, 33, 46, 0.1);
+  color: #f4212e;
+  border: 1px solid rgba(244, 33, 46, 0.2);
+}
+
 .form-actions {
+  display: flex;
+  gap: 12px;
   margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #eff3f4;
 }
 
 .save-button {
-  width: 100%;
+  flex: 1;
   padding: 14px 24px;
   background: linear-gradient(135deg, #1d9bf0 0%, #1a8cd8 100%);
   color: white;
@@ -199,6 +396,28 @@ const saveSettings = async () => {
 }
 
 .save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reset-button {
+  padding: 14px 24px;
+  background: transparent;
+  border: 1px solid #cfd9de;
+  border-radius: 9999px;
+  color: #536471;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reset-button:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #536471;
+}
+
+.reset-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

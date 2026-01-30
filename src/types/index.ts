@@ -5,9 +5,12 @@ export interface XComment {
   text: string
   author: string
   timestamp: string
+  displayTime?: string
   likes: number
   reposts: number
+  replies?: number
   views: number
+  engagement?: number
   category?: string
 }
 
@@ -34,6 +37,7 @@ export interface ExtensionSettings {
   apiKey: string
   maxComments: number
   theme: 'auto' | 'light' | 'dark'
+  requestTimeout: number
 }
 
 export interface APIRequest {
