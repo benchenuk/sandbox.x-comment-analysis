@@ -13,8 +13,7 @@
           required
         />
         <p class="help-text">
-          Base URL for your OpenAI-compatible API. The extension will automatically append <code>/chat/completions</code>.
-          <br>Examples: <code>https://api.openai.com/v1</code>, <code>http://localhost:1234/v1</code>
+          Examples: <code>https://api.openai.com/v1</code>, <code>http://localhost:1234/v1</code>
         </p>
       </div>
 
@@ -221,7 +220,7 @@ const testConnection = async () => {
         'Authorization': settings.value.apiKey ? `Bearer ${settings.value.apiKey}` : ''
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: settings.value.model || 'gpt-4',
         messages: [{ role: 'user', content: 'Hi' }],
         max_tokens: 5
       })
@@ -295,6 +294,7 @@ const testConnection = async () => {
 
 .form-group input[type="url"],
 .form-group input[type="password"],
+.form-group input[type="text"],
 .form-group input[type="number"] {
   width: 100%;
   padding: 12px 16px;
