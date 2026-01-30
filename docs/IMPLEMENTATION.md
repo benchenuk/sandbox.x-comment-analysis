@@ -374,9 +374,74 @@ dist/
 - **Export Results**: JSON and PDF export
 - **Keyboard Shortcuts**: Alt+Shift+A to analyze, Escape to close
 - **Custom Categories**: User-defined categorization rules
-   - Add loading skeleton animations
-   - Implement error states
-   - Test theme switching
+
+## Quick Reference
+
+### Settings Fields
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| API Base URL | string | "" | Base URL (e.g., https://api.openai.com/v1) |
+| API Key | string | "" | Authentication token |
+| Model | string | "gpt-4" | AI model name |
+| Max Comments | number | 50 | Comments to analyze (10-100) |
+| Timeout | number | 30000 | Request timeout in ms (5000-120000) |
+| Theme | string | "auto" | UI theme (auto/light/dark) |
+
+### TypeScript Interfaces
+```typescript
+// Comment scraped from X
+interface XComment {
+  id: string
+  text: string
+  author: string
+  timestamp: string
+  displayTime?: string
+  likes: number
+  reposts: number
+  replies?: number
+  views: number
+  engagement?: number
+}
+
+// Analysis result from API
+interface AnalysisResult {
+  summary: string
+  categories: Category[]
+  stats: AnalysisStats
+}
+
+// Extension settings
+interface ExtensionSettings {
+  apiEndpoint: string
+  apiKey: string
+  model: string
+  maxComments: number
+  theme: 'auto' | 'light' | 'dark'
+  requestTimeout: number
+}
+```
+
+### Console Logging
+The extension logs detailed information to the browser console:
+- `[X Thread Analyzer] Extension mounted successfully`
+- `[X Thread Analyzer] Found N articles`
+- `[X Thread Analyzer] Collected comment N: "..." by Author`
+- `[X Thread Analyzer] Total comments collected: N`
+- `[X Thread Analyzer] Sending N comments to API`
+- `[X Thread Analyzer] Using API URL: ...`
+- `[X Thread Analyzer] Analysis complete`
+- `[X Thread Analyzer] Analysis failed: ...`
+
+Enable console logging in Chrome DevTools (F12) → Console tab to debug issues.
+
+### File Locations
+- **Source code**: `src/`
+- **Build output**: `dist/` (load this in Chrome)
+- **Documentation**: `docs/`
+- **Configuration**: `src/manifest.json`
+- **Settings UI**: `src/options/components/SettingsForm.vue`
+- **API logic**: `src/background/service-worker.ts`
+- **DOM scraping**: `src/content/composables/useThreadAnalyzer.ts`
 
 4. **Testing**
    - Manual testing on X

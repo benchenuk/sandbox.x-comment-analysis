@@ -232,6 +232,76 @@ This document records key architectural decisions and their rationale.
 
 ---
 
+## ADR-013: Model Selection Strategy
+
+**Decision**: Allow users to specify model name in settings
+
+**Rationale**:
+- Different APIs support different models (gpt-4, gpt-3.5-turbo, claude, etc.)
+- Users may have preferences based on cost/quality trade-offs
+- Default value (gpt-4) provided for convenience
+- Simple text input allows flexibility for any API
+
+**Alternatives Considered**:
+- Hardcoded model: Too restrictive
+- Dropdown with preset models: Wouldn't work with custom/local APIs
+- Auto-detect from API: Too complex, unreliable
+
+**Status**: ✅ Implemented
+
+---
+
+## ADR-014: API URL Handling
+
+**Decision**: Smart URL building that auto-appends /chat/completions
+
+**Rationale**:
+- Users often enter base URL (e.g., http://localhost:1234/v1)
+- Full URL (with /chat/completions) is verbose and error-prone
+- Extension can intelligently build the full URL
+- Accepts both formats for flexibility
+
+**Implementation**:
+```javascript
+// If URL ends with /v1, append /chat/completions
+// If URL already has /chat/completions, use as-is
+// Otherwise, assume base URL and append /v1/chat/completions
+```
+
+**Alternatives Considered**:
+- Require full URL: More error-prone for users
+- Separate base URL and endpoint fields: More complex UI
+- No transformation: Wouldn't work with common base URL patterns
+
+**Status**: ✅ Implemented
+
+---
+
+## ADR-015: Progress Tracking
+
+**Decision**: Implement progress bar with percentage and status text
+
+**Rationale**:
+- API calls can take 10-30 seconds
+- Users need feedback that something is happening
+- Progress stages provide context (scraping → analyzing → processing)
+- Visual progress bar is more engaging than spinner alone
+
+**Progress Stages**:
+- 0-20%: Scraping comments from DOM
+- 20-40%: Preparing and sending data
+- 40-80%: Waiting for API response
+- 80-100%: Processing and displaying results
+
+**Alternatives Considered**:
+- Indeterminate spinner: Doesn't show progress
+- No progress indicator: Poor UX for long operations
+- Real-time streaming: Not supported by all APIs
+
+**Status**: ✅ Implemented
+
+---
+
 ## Pending Decisions
 
 ### PD-001: Comment Caching
@@ -239,13 +309,18 @@ This document records key architectural decisions and their rationale.
 - Pros: Faster repeat visits, reduced API costs
 - Cons: Stale data, storage limitations
 
-### PD-002: Rate Limiting
-- How to handle API rate limits?
-- Options: Queue requests, show warnings, exponential backoff
+### PD-002: Rate Limiting UI
+- How to show rate limit status to users?
+- Options: Warning banner, cooldown timer, queue position
 
 ### PD-003: Offline Support
 - Should extension work offline with cached results?
 - Complexity vs. value trade-off
+
+### PD-004: Resizable Sidebar
+- Implementation approach for resizable sidebar?
+- Options: CSS resize, custom drag handle, width presets
+- Constraints: Min/max width, persistence, performance
 
 ---
 
