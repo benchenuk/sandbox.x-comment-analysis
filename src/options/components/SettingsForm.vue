@@ -212,19 +212,28 @@ const testConnection = async () => {
     // Build full API URL
     const apiUrl = buildApiUrl(settings.value.apiEndpoint)
     
-    // Simple test request to check if endpoint is reachable
+    // Now try a minimal POST request to chat/completions
+    // Use a very simple request that won't crash the server
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout for test
+    
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Authorization': settings.value.apiKey ? `Bearer ${settings.value.apiKey}` : ''
       },
       body: JSON.stringify({
         model: settings.value.model || 'gpt-4',
-        messages: [{ role: 'user', content: 'Hi' }],
-        max_tokens: 5
-      })
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 1,
+        temperature: 0
+      }),
+      signal: controller.signal
     })
+    
+    clearTimeout(timeoutId)
 
     if (response.ok) {
       testResult.value = { 
@@ -234,18 +243,36 @@ const testConnection = async () => {
     } else if (response.status === 401) {
       testResult.value = { 
         type: 'error', 
-        message: '✗ Authentication failed. Please check your API key.' 
+        message: '✗ Authentication failed (401). Please check your API key.' 
+      }
+    } else if (response.status === 404) {
+      testResult.value = { 
+        type: 'error', 
+        message: `✗ Endpoint not found (404). Please check your API URL. Tried: ${apiUrl}` 
+      }
+    } else if (response.status === 429) {
+      testResult.value = { 
+        type: 'error', 
+        message: '✗ Rate limited (429). Please wait a moment and try again.' 
+      }
+    } else {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      testResult.value = { 
+        type: 'error', 
+        message: `✗ Connection failed: ${response.status} ${response.statusText}. ${errorText.slice(0, 100)}` 
+      }
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      testResult.value = { 
+        type: 'error', 
+        message: '✗ Connection timed out after 10 seconds. Server may be unreachable.' 
       }
     } else {
       testResult.value = { 
         type: 'error', 
-        message: `✗ Connection failed: ${response.status} ${response.statusText}` 
+        message: `✗ Connection error: ${error instanceof Error ? error.message : 'Unknown error'}` 
       }
-    }
-  } catch (error) {
-    testResult.value = { 
-      type: 'error', 
-      message: `✗ Connection error: ${error instanceof Error ? error.message : 'Unknown error'}` 
     }
   } finally {
     isTesting.value = false

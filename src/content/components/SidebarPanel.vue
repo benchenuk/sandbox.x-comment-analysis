@@ -8,10 +8,18 @@
           @click="togglePin"
           :title="isPinned ? 'Unpin' : 'Pin'"
         >
-          <span v-if="isPinned">📌</span>
-          <span v-else>📍</span>
+          <svg v-if="isPinned" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z"/>
+          </svg>
         </button>
-        <button class="close-button" @click="emit('close')">✕</button>
+        <button class="close-button" @click="emit('close')" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6L18 18"/>
+          </svg>
+        </button>
       </div>
     </div>
     
@@ -27,15 +35,21 @@
       
       <!-- Error State -->
       <div v-else-if="error" class="error-state">
-        <div class="error-icon">⚠️</div>
+        <div class="error-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f4212e" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
         <h3>Analysis Failed</h3>
         <p class="error-message">{{ error }}</p>
         <div class="error-actions">
           <button class="retry-button" @click="emit('retry')">
-            🔄 Try Again
+            Try Again
           </button>
           <button class="settings-button" @click="openSettings">
-            ⚙️ Check Settings
+            Check Settings
           </button>
         </div>
       </div>
@@ -45,7 +59,11 @@
       
       <!-- Empty State -->
       <div v-else class="empty-state">
-        <div class="empty-icon">📊</div>
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--x-text-secondary, #536471)" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
         <p>Ready to analyze</p>
         <p class="empty-subtext">Click the button below to start analyzing this thread</p>
       </div>
@@ -133,15 +151,20 @@ const getProgressText = (progress: number): string => {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px;
   font-size: 16px;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: background 0.2s;
+  color: var(--x-text-secondary, #536471);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pin-button:hover,
 .close-button:hover {
   background: var(--x-bg-hover, rgba(0, 0, 0, 0.05));
+  color: var(--x-text-primary, #0f1419);
 }
 
 .sidebar-content {
@@ -236,7 +259,7 @@ const getProgressText = (progress: number): string => {
 }
 
 .settings-button {
-  background: white;
+  background: var(--x-bg-primary, #ffffff);
   border: 1px solid var(--x-border, #cfd9de);
   color: var(--x-text-primary, #0f1419);
 }
