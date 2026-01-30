@@ -82,28 +82,51 @@ x-thread-analyzer/
 - Returns reactive theme ref
 
 ### 6. composables/useThreadAnalyzer.ts
-**Purpose**: Orchestrate analysis
+**Purpose**: Orchestrate analysis with enhanced scraping
 **Flow**:
-1. Scrape comments from DOM
-2. Filter and limit (50 max)
-3. Send to background script
-4. Return results
+1. Scrape comments from DOM with deduplication
+2. Parse engagement metrics (handles K/M suffixes)
+3. Filter visible content only
+4. Sort by engagement score
+5. Send to background script
+6. Track progress (0-100%)
+7. Handle errors gracefully
+**Features**:
+- Duplicate detection using tweet IDs
+- Visibility checks (skips hidden/promoted content)
+- Engagement parsing ("1.2K" → 1200)
+- Detailed console logging
 
 ### 7. background/service-worker.ts
-**Purpose**: API proxy
+**Purpose**: API proxy with retry logic
 **Flow**:
 1. Listen for messages from content
-2. Read settings from storage
-3. Make fetch request to API
-4. Transform and return response
+2. Read settings from storage (including timeout)
+3. Make fetch request with timeout (AbortController)
+4. Retry on failure (exponential backoff, 3 attempts)
+5. Transform OpenAI-compatible response
+6. Return data or error
+**Features**:
+- Configurable request timeout (5-120 seconds)
+- Retry logic with exponential backoff
+- User-friendly error messages (401, 429, 500+)
+- OpenAI API format support
+- Default settings initialization on install
 
 ### 8. options/SettingsForm.vue
-**Purpose**: Configuration UI
+**Purpose**: Configuration UI with validation
 **Fields**:
-- API endpoint URL
-- API key (optional)
-- Max comments limit
-- Theme preference
+- API endpoint URL (with format validation)
+- API key (optional, password field)
+- Max comments limit (10-100)
+- Request timeout (5-120 seconds)
+- Theme preference (Auto/Light/Dark)
+**Features**:
+- Test connection button (validates API endpoint)
+- Reset to defaults button
+- Form validation
+- Success/error feedback messages
+- Organized sections (API, Appearance)
 
 ## Data Flow
 
@@ -116,13 +139,17 @@ App.vue startAnalysis()
     ↓
 useThreadAnalyzer.analyzeThread()
     ↓
-scrapeComments() - DOM scraping
+scrapeComments() - DOM scraping with deduplication
+    ↓
+Progress: 10% (scraping) → 30% (preparing)
     ↓
 chrome.runtime.sendMessage()
     ↓
 Background service worker
     ↓
-fetch() to external API
+fetch() to external API (with timeout & retry)
+    ↓
+Progress: 80% (processing)
     ↓
 API response
     ↓
@@ -130,7 +157,22 @@ Transform to AnalysisResult
     ↓
 sendResponse() back to content
     ↓
-Display in SidebarPanel
+Progress: 100% (complete)
+    ↓
+Display in SidebarPanel (results or error)
+```
+
+### Error Flow
+```
+API Error / Network Error
+    ↓
+Retry logic (3 attempts with backoff)
+    ↓
+If still failing:
+    ↓
+Display error in SidebarPanel
+    ↓
+Show retry button + settings button
 ```
 
 ## CSS Architecture
@@ -157,19 +199,52 @@ Display in SidebarPanel
 - Prevents CSS leakage to X's page
 - Uses CSS variables for dynamic theming
 
+## UI States & Progress Tracking
+
+### Loading State
+- **Progress Bar**: Visual indicator (0-100%)
+- **Status Text**: Dynamic updates during analysis
+  - 0-20%: "Scraping comments..."
+  - 20-40%: "Preparing data..."
+  - 40-80%: "Analyzing with AI..."
+  - 80-100%: "Processing results..."
+- **Spinner**: Animated loading indicator
+
+### Error State
+- **Error Icon**: ⚠️ Visual indicator
+- **Error Message**: User-friendly description
+- **Retry Button**: Re-run analysis
+- **Settings Button**: Open options page to check configuration
+- **Error Types**:
+  - API authentication failed (401)
+  - Rate limit exceeded (429)
+  - Server error (500+)
+  - Network timeout
+  - No comments found
+
+### Success State
+- **Summary Section**: Thread overview
+- **Categories**: Collapsible comment groups
+- **Statistics**: Total, filtered, analyzed counts
+- **Engagement Metrics**: Likes, reposts, replies per comment
+
 ## TypeScript Types
 
 ### Core Types (src/types/index.ts)
 
 ```typescript
 interface XComment {
-  id: string
+  id: string              // Tweet ID for deduplication
   text: string
   author: string
-  timestamp: string
+  timestamp: string       // ISO 8601 format
+  displayTime?: string    // Human-readable time
   likes: number
   reposts: number
+  replies?: number        // Reply count
   views: number
+  engagement?: number     // Calculated: likes + reposts + replies
+  category?: string       // Assigned by API
 }
 
 interface AnalysisResult {
@@ -181,8 +256,9 @@ interface AnalysisResult {
 interface ExtensionSettings {
   apiEndpoint: string
   apiKey: string
-  maxComments: number
+  maxComments: number     // 10-100
   theme: 'auto' | 'light' | 'dark'
+  requestTimeout: number  // 5000-120000ms
 }
 ```
 
@@ -260,18 +336,34 @@ dist/
     └── options/index.html
 ```
 
-## Next Steps for Phase 2
+## Next Steps for Phase 3 (Testing & Quality)
 
-1. **DOM Scraping Refinement**
-   - Test on various X thread types
-   - Handle edge cases (deleted tweets, restricted accounts)
+1. **Manual Testing**
+   - Test on Chrome and Edge
+   - Test various X thread types (text, media, long, short)
+   - Test with different API endpoints (OpenAI, Azure, custom)
+   - Performance profiling
 
-2. **API Integration**
-   - Connect to actual API endpoint
-   - Test request/response format
-   - Add error handling for various failure modes
+2. **Edge Cases**
+   - Empty threads (no comments)
+   - Threads with 1000+ comments
+   - Private/restricted accounts
+   - Deleted tweets in thread
+   - Slow network conditions
+   - API failures
 
-3. **UI Polish**
+3. **Code Quality**
+   - Add ESLint and Prettier
+   - Add unit tests
+   - Security audit
+
+## Phase 4 Preview (Enhancements)
+
+- **Resizable Sidebar**: Drag handle to adjust width (300-600px)
+- **Historical Storage**: Save analysis results per thread
+- **Export Results**: JSON and PDF export
+- **Keyboard Shortcuts**: Alt+Shift+A to analyze, Escape to close
+- **Custom Categories**: User-defined categorization rules
    - Add loading skeleton animations
    - Implement error states
    - Test theme switching

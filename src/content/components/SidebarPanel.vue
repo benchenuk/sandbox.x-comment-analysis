@@ -236,13 +236,14 @@ const getProgressText = (progress: number): string => {
 }
 
 .settings-button {
-  background: transparent;
+  background: white;
   border: 1px solid var(--x-border, #cfd9de);
-  color: var(--x-text-secondary, #536471);
+  color: var(--x-text-primary, #0f1419);
 }
 
 .settings-button:hover {
-  background: var(--x-bg-hover, rgba(0, 0, 0, 0.05));
+  background: var(--x-bg-secondary, #f7f9f9);
+  border-color: var(--x-text-secondary, #536471);
 }
 
 /* Empty State */
