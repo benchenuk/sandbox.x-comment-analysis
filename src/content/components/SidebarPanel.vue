@@ -48,9 +48,6 @@
           <button class="retry-button" @click="emit('retry')">
             Try Again
           </button>
-          <button class="settings-button" @click="openSettings">
-            Check Settings
-          </button>
         </div>
       </div>
       
@@ -95,10 +92,6 @@ const isPinned = ref(true)
 const togglePin = () => {
   isPinned.value = !isPinned.value
   emit('pin', isPinned.value)
-}
-
-const openSettings = () => {
-  chrome.runtime.openOptionsPage()
 }
 
 const getProgressText = (progress: number): string => {

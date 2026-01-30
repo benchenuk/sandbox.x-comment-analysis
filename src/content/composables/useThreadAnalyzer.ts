@@ -90,18 +90,19 @@ export function useThreadAnalyzer() {
       }
       seenIds.add(tweetId)
       
-      // Check for images/media in the tweet
-      const hasImages = article.querySelector('[data-testid="tweetPhoto"]') !== null ||
-                       article.querySelector('img[src*="pbs.twimg.com"]') !== null
-      
-      if (hasImages) {
-        console.log(`[X Thread Analyzer] Skipping comment ${index} - contains images`)
-        return
-      }
-      
-      // Extract text content
+      // Extract text content first
       const textEl = article.querySelector('[data-testid="tweetText"]')
       const text = textEl?.textContent?.trim() || ''
+      
+      // Check for images/media in the tweet
+      const hasImages = article.querySelector('[data-testid="tweetPhoto"]') !== null
+      
+      // Skip only if no text AND has images (image-only tweets)
+      // Keep comments that have text, even if they also have images
+      if (!text && hasImages) {
+        console.log(`[X Thread Analyzer] Skipping image-only comment ${index}`)
+        return
+      }
       
       // Skip if no text or too short (likely just media or emoji)
       if (!text || text.length < 5) {
