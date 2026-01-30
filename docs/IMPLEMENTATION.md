@@ -298,6 +298,31 @@ npm run build
 ### Issue: Extension not loading
 **Solution**: Check `dist/manifest.json` exists after build
 
+### Issue: CORS errors when calling API
+**Error**: `Access to fetch at 'http://localhost:...' from origin 'chrome-extension://...' has been blocked by CORS policy`
+
+**Cause**: The API endpoint domain is not in the extension's `host_permissions`
+
+**Solutions**:
+1. **For localhost development**: Already fixed in manifest.json (includes `http://localhost:*/`)
+2. **For production APIs**: Add your API domain to `host_permissions` in `src/manifest.json`:
+   ```json
+   "host_permissions": [
+     "https://x.com/*",
+     "https://twitter.com/*",
+     "http://localhost:*/",
+     "https://localhost:*/",
+     "https://api.yourdomain.com/*"
+   ]
+   ```
+3. **After modifying manifest**: You must reload the extension in Chrome:
+   - Go to `chrome://extensions/`
+   - Find "X Thread Analyzer"
+   - Click the reload icon (🔄)
+   - Approve any new permissions
+
+**Note**: The extension uses a background service worker to make API calls, which helps avoid CORS issues, but the target domain must still be declared in `host_permissions`.
+
 ### Issue: CORS errors
 **Solution**: API calls must go through background service worker, not content script
 
