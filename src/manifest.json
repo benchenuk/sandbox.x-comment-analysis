@@ -16,8 +16,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://x.com/*/status/*",
-        "https://twitter.com/*/status/*"
+        "https://x.com/*",
+        "https://twitter.com/*"
       ],
       "js": [
         "src/content/main.ts"
