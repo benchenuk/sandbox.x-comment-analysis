@@ -17,7 +17,7 @@ const activeControllers = new Map<string, AbortController>()
 
 // Get settings from storage
 const getSettings = async () => {
-  const result = await chrome.storage.sync.get({
+  const result = await chrome.storage.local.get({
     apiEndpoint: '',
     apiKey: '',
     model: 'gpt-4',
@@ -344,7 +344,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   
   // Set default settings on install
   if (details.reason === 'install') {
-    chrome.storage.sync.set({
+    chrome.storage.local.set({
       apiEndpoint: '',
       apiKey: '',
       model: 'gpt-4',

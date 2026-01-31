@@ -161,7 +161,7 @@ const message = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const testResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 onMounted(async () => {
-  const result = await chrome.storage.sync.get(defaultSettings)
+  const result = await chrome.storage.local.get(defaultSettings)
   settings.value = result as ExtensionSettings
 })
 
@@ -170,7 +170,7 @@ const saveSettings = async () => {
   message.value = null
 
   try {
-    await chrome.storage.sync.set(settings.value)
+    await chrome.storage.local.set(settings.value)
     message.value = { type: 'success', text: 'Settings saved successfully!' }
     
     // Clear message after 3 seconds
