@@ -62,11 +62,11 @@
             v-model.number="settings.requestTimeout"
             type="number"
             min="5000"
-            max="120000"
+            max="300000"
             step="1000"
             required
           />
-          <p class="help-text">5-120 seconds</p>
+          <p class="help-text">5-300 seconds (5 min max)</p>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ const defaultSettings: ExtensionSettings = {
   model: 'gpt-4',
   maxComments: 50,
   theme: 'auto',
-  requestTimeout: 30000
+  requestTimeout: 300000
 }
 
 const settings = ref<ExtensionSettings>({ ...defaultSettings })

@@ -3,7 +3,7 @@
     <div class="sidebar-header">
       <h2>Comment Analysis</h2>
       <div class="header-actions">
-        <button class="close-button" @click="emit('close')" title="Close">
+        <button class="close-button" @click="emit('close')" :title="isLoading ? 'Cancel & Close' : 'Close'">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6L18 18"/>
           </svg>
@@ -19,6 +19,7 @@
           <div class="progress-bar" :style="{ width: `${progress}%` }"></div>
         </div>
         <p class="progress-text">{{ getProgressText(progress) }}</p>
+        <p class="cancel-hint">Analysis may take up to a few minutes. Closing this will cancel the request.</p>
       </div>
       
       <!-- Error State -->
@@ -33,8 +34,8 @@
         <h3>Analysis Failed</h3>
         <p class="error-message">{{ error }}</p>
         <div class="error-actions">
-          <button class="retry-button" @click="emit('retry')">
-            Try Again
+          <button class="retry-button" @click="emit('retry')" :disabled="isLoading">
+            {{ isLoading ? 'Retrying...' : 'Try Again' }}
           </button>
         </div>
       </div>
@@ -170,6 +171,16 @@ const getProgressText = (progress: number): string => {
   margin-top: 12px;
   font-size: 14px;
   color: var(--x-text-secondary, #536471);
+}
+
+.cancel-hint {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--x-text-secondary, #71767b);
+  font-style: italic;
+  text-align: center;
+  line-height: 1.4;
+  padding: 0 20px;
 }
 
 /* Error State */

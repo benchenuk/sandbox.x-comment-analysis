@@ -5,6 +5,7 @@ export function useThreadAnalyzer() {
   const isAnalyzing = ref(false)
   const error = ref<string | null>(null)
   const progress = ref(0)
+  const abortController = ref<AbortController | null>(null)
 
   /**
    * Parse engagement count from X's formatted text
@@ -166,12 +167,42 @@ export function useThreadAnalyzer() {
   }
 
   /**
+   * Cancel ongoing analysis
+   */
+  const cancelAnalysis = async (): Promise<void> => {
+    if (abortController.value) {
+      console.log('[X Thread Analyzer] Cancelling analysis...')
+      abortController.value.abort()
+      
+      // Also notify background script to cancel
+      try {
+        await chrome.runtime.sendMessage({ type: 'CANCEL_ANALYSIS' })
+      } catch {
+        // Ignore errors if background script is not responding
+      }
+      
+      abortController.value = null
+    }
+    isAnalyzing.value = false
+    progress.value = 0
+  }
+
+  /**
    * Analyze thread by scraping comments and sending to API
    */
   const analyzeThread = async (): Promise<AnalysisResult> => {
+    // Cancel any existing analysis first to prevent duplicate requests
+    if (isAnalyzing.value && abortController.value) {
+      console.log('[X Thread Analyzer] Cancelling previous analysis before starting new one')
+      await cancelAnalysis()
+    }
+    
     isAnalyzing.value = true
     error.value = null
     progress.value = 0
+    
+    // Create new abort controller for this analysis
+    abortController.value = new AbortController()
     
     try {
       // Step 1: Scrape comments
@@ -190,6 +221,11 @@ export function useThreadAnalyzer() {
         type: 'ANALYZE_COMMENTS',
         payload: { comments }
       })
+      
+      // Check if analysis was cancelled
+      if (abortController.value?.signal.aborted) {
+        throw new Error('Analysis cancelled')
+      }
       
       progress.value = 80
       
@@ -215,11 +251,20 @@ export function useThreadAnalyzer() {
       return result
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      error.value = errorMessage
-      console.error('[X Thread Analyzer] Analysis failed:', errorMessage)
+      
+      // Don't show error for user cancellation
+      if (errorMessage === 'Analysis cancelled' || errorMessage === 'Analysis cancelled by user') {
+        console.log('[X Thread Analyzer] Analysis was cancelled by user')
+        error.value = null
+      } else {
+        error.value = errorMessage
+        console.error('[X Thread Analyzer] Analysis failed:', errorMessage)
+      }
+      
       throw err
     } finally {
       isAnalyzing.value = false
+      abortController.value = null
     }
   }
 
@@ -227,6 +272,7 @@ export function useThreadAnalyzer() {
     isAnalyzing,
     error,
     progress,
-    analyzeThread
+    analyzeThread,
+    cancelAnalysis
   }
 }

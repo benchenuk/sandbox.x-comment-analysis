@@ -4,8 +4,16 @@ interface AnalyzeRequest {
   type: 'ANALYZE_COMMENTS'
   payload: {
     comments: XComment[]
+    signal?: AbortSignal
   }
 }
+
+interface CancelRequest {
+  type: 'CANCEL_ANALYSIS'
+}
+
+// Track active abort controllers
+const activeControllers = new Map<string, AbortController>()
 
 // Get settings from storage
 const getSettings = async () => {
@@ -14,7 +22,7 @@ const getSettings = async () => {
     apiKey: '',
     model: 'gpt-4',
     maxComments: 50,
-    requestTimeout: 30000 // 30 seconds default
+    requestTimeout: 300000 // 5 minutes default (300 seconds)
   })
   return result
 }
@@ -42,36 +50,12 @@ const buildApiUrl = (baseEndpoint: string): string => {
 }
 
 /**
- * Fetch with timeout support
+ * Call external API (single attempt, no retry)
  */
-const fetchWithTimeout = async (
-  url: string, 
-  options: RequestInit, 
-  timeout: number
-): Promise<Response> => {
-  const controller = new AbortController()
-  const id = setTimeout(() => controller.abort(), timeout)
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    })
-    clearTimeout(id)
-    return response
-  } catch (error) {
-    clearTimeout(id)
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error(`Request timed out after ${timeout}ms`)
-    }
-    throw error
-  }
-}
-
-/**
- * Call external API with retry logic
- */
-const analyzeComments = async (comments: XComment[]): Promise<AnalysisResult> => {
+const analyzeComments = async (
+  comments: XComment[],
+  externalSignal?: AbortSignal
+): Promise<AnalysisResult> => {
   const settings = await getSettings()
   
   if (!settings.apiEndpoint) {
@@ -85,28 +69,23 @@ const analyzeComments = async (comments: XComment[]): Promise<AnalysisResult> =>
     throw new Error('Invalid API endpoint URL. Please check your settings.')
   }
   
-  const maxRetries = 2
-  let lastError: Error | null = null
+  console.log(`[X Thread Analyzer] Starting API call with ${comments.length} comments`)
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`[X Thread Analyzer] API call attempt ${attempt + 1}/${maxRetries + 1}`)
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-      
-      if (settings.apiKey) {
-        headers['Authorization'] = `Bearer ${settings.apiKey}`
-      }
-      
-      const requestBody = {
-        model: settings.model || 'gpt-4', // Use configured model or default
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert at analyzing social media comments. Analyze the provided X/Twitter thread comments and provide:
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+  
+  if (settings.apiKey) {
+    headers['Authorization'] = `Bearer ${settings.apiKey}`
+  }
+  
+  const requestBody = {
+    model: settings.model || 'gpt-4',
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert at analyzing social media comments. Analyze the provided X/Twitter thread comments and provide:
 1. A concise summary (2-3 sentences)
 2. Categories of comments (e.g., "Support", "Questions", "Criticism", "Off-topic", "Bot/Spam")
 3. Identification of potential bots/trolls
@@ -119,137 +98,106 @@ Return JSON format only with these fields:
 - categories: array of {name, icon, comments} where comments have: {id, text, author}
 - filteredCount: number (bots/trolls filtered)
 - analyzedCount: number (total analyzed)`
-          },
-          {
-            role: 'user',
-            content: `Analyze these ${comments.length} comments from an X/Twitter thread:\n\n${
-              comments.map((c) => 
-                `ID:${c.id} | ${c.author}: "${c.text}" (Likes: ${c.likes}, Reposts: ${c.reposts})`
-              ).join('\n')
-            }`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
+      },
+      {
+        role: 'user',
+        content: `Analyze these ${comments.length} comments from an X/Twitter thread:\n\n${
+          comments.map((c) => 
+            `ID:${c.id} | ${c.author}: "${c.text}" (Likes: ${c.likes}, Reposts: ${c.reposts})`
+          ).join('\n')
+        }`
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 2000
+  }
+  
+  // Build full API URL
+  const apiUrl = buildApiUrl(settings.apiEndpoint)
+  console.log(`[X Thread Analyzer] Using API URL: ${apiUrl}`)
+  console.log(`[X Thread Analyzer] Timeout: ${settings.requestTimeout}ms (${settings.requestTimeout / 1000}s)`)
+  
+  // Create abort controller for timeout
+  const timeoutController = new AbortController()
+  const timeoutId = setTimeout(() => {
+    timeoutController.abort()
+  }, settings.requestTimeout)
+  
+  // Combine timeout signal with external signal (for cancellation)
+  const abortHandler = () => {
+    clearTimeout(timeoutId)
+  }
+  
+  timeoutController.signal.addEventListener('abort', abortHandler)
+  
+  if (externalSignal) {
+    externalSignal.addEventListener('abort', () => {
+      clearTimeout(timeoutId)
+      timeoutController.abort()
+    })
+  }
+  
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: timeoutController.signal
+    })
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error')
+      let errorMessage = `API error: ${response.status} ${response.statusText}`
+      
+      // Provide user-friendly error messages
+      if (response.status === 401) {
+        errorMessage = 'API authentication failed. Please check your API key.'
+      } else if (response.status === 429) {
+        errorMessage = 'Rate limit exceeded. Please wait a moment and try again.'
+      } else if (response.status >= 500) {
+        errorMessage = 'API server error. Please try again later.'
       }
       
-      // Build full API URL (auto-appends /chat/completions if needed)
-      const apiUrl = buildApiUrl(settings.apiEndpoint)
-      console.log(`[X Thread Analyzer] Using API URL: ${apiUrl}`)
+      throw new Error(`${errorMessage}${errorText ? ` - ${errorText}` : ''}`)
+    }
+    
+    const data = await response.json()
+    
+    // Parse OpenAI-style response
+    let analysisData: AnalysisResult
+    
+    if (data.choices && data.choices[0]?.message?.content) {
+      // OpenAI/compatible API format
+      const content = data.choices[0].message.content
       
-      const response = await fetchWithTimeout(
-        apiUrl,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(requestBody)
-        },
-        settings.requestTimeout
-      )
-      
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error')
-        let errorMessage = `API error: ${response.status} ${response.statusText}`
+      // Try to parse JSON from content
+      try {
+        const parsed = JSON.parse(content)
         
-        // Provide user-friendly error messages
-        if (response.status === 401) {
-          errorMessage = 'API authentication failed. Please check your API key.'
-        } else if (response.status === 429) {
-          errorMessage = 'Rate limit exceeded. Please wait a moment and try again.'
-        } else if (response.status >= 500) {
-          errorMessage = 'API server error. Please try again later.'
-        }
-        
-        throw new Error(`${errorMessage}${errorText ? ` - ${errorText}` : ''}`)
-      }
-      
-      const data = await response.json()
-      
-      // Parse OpenAI-style response
-      let analysisData: AnalysisResult
-      
-      if (data.choices && data.choices[0]?.message?.content) {
-        // OpenAI/compatible API format
-        const content = data.choices[0].message.content
-        
-        // Try to parse JSON from content
-        try {
-          const parsed = JSON.parse(content)
-          
-          // Process categories - ensure comments have full data
-          const processedCategories = (parsed.categories || []).map((cat: any) => ({
-            name: cat.name || 'Uncategorized',
-            icon: cat.icon || '',
-            comments: (cat.comments || []).map((comment: any) => {
-              // If comment has an id, try to find the original comment data
-              if (comment.id) {
-                const originalComment = comments.find(c => c.id === comment.id)
-                if (originalComment) {
-                  return { ...originalComment, category: cat.name }
-                }
-              }
-              // Otherwise use the comment data as-is if it has text
-              if (comment.text) {
-                return comment
-              }
-              // Fallback: return a placeholder
-              return null
-            }).filter(Boolean)
-          })).filter((cat: any) => cat.comments.length > 0)
-          
-          // If no valid categories, create a default one with all comments
-          if (processedCategories.length === 0) {
-            processedCategories.push({
-              name: 'All Comments',
-              icon: '',
-              comments: comments.slice(0, 10)
-            })
-          }
-          
-          analysisData = {
-            summary: parsed.summary || 'Analysis completed',
-            categories: processedCategories,
-            stats: {
-              totalComments: comments.length,
-              filteredComments: parsed.filteredCount || 0,
-              analyzedComments: parsed.analyzedCount || comments.length
-            }
-          }
-        } catch {
-          // If not JSON, use content as summary
-          analysisData = {
-            summary: content,
-            categories: [{
-              name: 'All Comments',
-              icon: '',
-              comments: comments.slice(0, 10)
-            }],
-            stats: {
-              totalComments: comments.length,
-              filteredComments: 0,
-              analyzedComments: comments.length
-            }
-          }
-        }
-      } else {
-        // Direct API response format
-        const processedCategories = (data.categories || []).map((cat: any) => ({
+        // Process categories - ensure comments have full data
+        const processedCategories = (parsed.categories || []).map((cat: any) => ({
           name: cat.name || 'Uncategorized',
           icon: cat.icon || '',
           comments: (cat.comments || []).map((comment: any) => {
+            // If comment has an id, try to find the original comment data
             if (comment.id) {
               const originalComment = comments.find(c => c.id === comment.id)
               if (originalComment) {
                 return { ...originalComment, category: cat.name }
               }
             }
+            // Otherwise use the comment data as-is if it has text
             if (comment.text) {
               return comment
             }
+            // Fallback: return a placeholder
             return null
           }).filter(Boolean)
         })).filter((cat: any) => cat.comments.length > 0)
         
+        // If no valid categories, create a default one with all comments
         if (processedCategories.length === 0) {
           processedCategories.push({
             name: 'All Comments',
@@ -259,58 +207,113 @@ Return JSON format only with these fields:
         }
         
         analysisData = {
-          summary: data.summary || 'Analysis completed',
+          summary: parsed.summary || 'Analysis completed',
           categories: processedCategories,
           stats: {
             totalComments: comments.length,
-            filteredComments: data.filteredCount || 0,
-            analyzedComments: data.analyzedCount || comments.length
+            filteredComments: parsed.filteredCount || 0,
+            analyzedComments: parsed.analyzedCount || comments.length
+          }
+        }
+      } catch {
+        // If not JSON, use content as summary
+        analysisData = {
+          summary: content,
+          categories: [{
+            name: 'All Comments',
+            icon: '',
+            comments: comments.slice(0, 10)
+          }],
+          stats: {
+            totalComments: comments.length,
+            filteredComments: 0,
+            analyzedComments: comments.length
           }
         }
       }
+    } else {
+      // Direct API response format
+      const processedCategories = (data.categories || []).map((cat: any) => ({
+        name: cat.name || 'Uncategorized',
+        icon: cat.icon || '',
+        comments: (cat.comments || []).map((comment: any) => {
+          if (comment.id) {
+            const originalComment = comments.find(c => c.id === comment.id)
+            if (originalComment) {
+              return { ...originalComment, category: cat.name }
+            }
+          }
+          if (comment.text) {
+            return comment
+          }
+          return null
+        }).filter(Boolean)
+      })).filter((cat: any) => cat.comments.length > 0)
       
-      // Log detailed results
-      const totalInCategories = analysisData.categories.reduce((sum, cat) => sum + cat.comments.length, 0)
-      console.log('[X Thread Analyzer] API call successful:')
-      console.log(`  - Input: ${comments.length} comments`)
-      console.log(`  - Categories: ${analysisData.categories.length}`)
-      console.log(`  - Comments in categories: ${totalInCategories}`)
-      console.log(`  - Filtered: ${analysisData.stats.filteredComments}`)
-      
-      return analysisData
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error))
-      console.error(`[X Thread Analyzer] API attempt ${attempt + 1} failed:`, lastError.message)
-      
-      // Don't retry on client errors (4xx) except 429 (rate limit)
-      if (lastError.message.includes('401') || lastError.message.includes('403')) {
-        break
+      if (processedCategories.length === 0) {
+        processedCategories.push({
+          name: 'All Comments',
+          icon: '',
+          comments: comments.slice(0, 10)
+        })
       }
       
-      // Wait before retry (exponential backoff)
-      if (attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000
-        console.log(`[X Thread Analyzer] Retrying in ${delay}ms...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
+      analysisData = {
+        summary: data.summary || 'Analysis completed',
+        categories: processedCategories,
+        stats: {
+          totalComments: comments.length,
+          filteredComments: data.filteredCount || 0,
+          analyzedComments: data.analyzedCount || comments.length
+        }
       }
     }
+    
+    // Log detailed results
+    const totalInCategories = analysisData.categories.reduce((sum, cat) => sum + cat.comments.length, 0)
+    console.log('[X Thread Analyzer] API call successful:')
+    console.log(`  - Input: ${comments.length} comments`)
+    console.log(`  - Categories: ${analysisData.categories.length}`)
+    console.log(`  - Comments in categories: ${totalInCategories}`)
+    console.log(`  - Filtered: ${analysisData.stats.filteredComments}`)
+    
+    return analysisData
+    
+  } catch (error) {
+    clearTimeout(timeoutId)
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        if (externalSignal?.aborted) {
+          throw new Error('Analysis cancelled by user')
+        }
+        throw new Error(`Request timed out after ${settings.requestTimeout / 1000} seconds. The LLM may be overloaded.`)
+      }
+      throw error
+    }
+    throw new Error(String(error))
   }
-  
-  throw lastError || new Error('Failed to analyze comments after multiple attempts')
 }
 
 // Handle messages from content script
-chrome.runtime.onMessage.addListener((request: AnalyzeRequest, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request: AnalyzeRequest | CancelRequest, sender, sendResponse) => {
+  const tabId = sender.tab?.id?.toString() || 'unknown'
+  
   if (request.type === 'ANALYZE_COMMENTS') {
     console.log(`[X Thread Analyzer] Received ${request.payload.comments.length} comments for analysis`)
     
-    analyzeComments(request.payload.comments)
+    // Create abort controller for this analysis
+    const controller = new AbortController()
+    activeControllers.set(tabId, controller)
+    
+    analyzeComments(request.payload.comments, controller.signal)
       .then(result => {
+        activeControllers.delete(tabId)
         console.log('[X Thread Analyzer] Analysis successful')
         sendResponse({ data: result })
       })
       .catch(error => {
+        activeControllers.delete(tabId)
         console.error('[X Thread Analyzer] Analysis failed:', error.message)
         sendResponse({ 
           error: error.message,
@@ -319,6 +322,19 @@ chrome.runtime.onMessage.addListener((request: AnalyzeRequest, _sender, sendResp
       })
     
     return true // Keep message channel open for async
+  }
+  
+  if (request.type === 'CANCEL_ANALYSIS') {
+    const controller = activeControllers.get(tabId)
+    if (controller) {
+      console.log(`[X Thread Analyzer] Cancelling analysis for tab ${tabId}`)
+      controller.abort()
+      activeControllers.delete(tabId)
+      sendResponse({ cancelled: true })
+    } else {
+      sendResponse({ cancelled: false, reason: 'No active analysis' })
+    }
+    return false
   }
 })
 
@@ -334,7 +350,7 @@ chrome.runtime.onInstalled.addListener((details) => {
       model: 'gpt-4',
       maxComments: 50,
       theme: 'auto',
-      requestTimeout: 30000
+      requestTimeout: 300000 // 5 minutes
     })
   }
 })

@@ -7,11 +7,12 @@
     />
     <SidebarPanel
       v-if="showSidebar"
+      :key="sidebarKey"
       :results="analysisResults"
       :is-loading="isAnalyzing"
       :error="error"
       :progress="progress"
-      @close="showSidebar = false"
+      @close="handleClose"
       @retry="startAnalysis"
     />
   </div>
@@ -26,11 +27,12 @@ import { useThreadAnalyzer } from './composables/useThreadAnalyzer'
 import type { AnalysisResult } from '../types'
 
 const { theme } = useXTheme()
-const { analyzeThread, isAnalyzing, error, progress } = useThreadAnalyzer()
+const { analyzeThread, cancelAnalysis, isAnalyzing, error, progress } = useThreadAnalyzer()
 
 const showSidebar = ref(false)
 const analysisResults = ref<AnalysisResult | null>(null)
 const currentPath = ref(window.location.pathname)
+const sidebarKey = ref(0)
 
 const isOnThreadPage = computed(() => {
   // Match patterns like /username/status/123456
@@ -42,13 +44,24 @@ let pathObserver: MutationObserver | null = null
 const startAnalysis = async () => {
   showSidebar.value = true
   analysisResults.value = null
+  sidebarKey.value++ // Force sidebar re-render to clear error state
   
   try {
     analysisResults.value = await analyzeThread()
   } catch (err) {
     // Error is already set in the composable
     console.error('[X Thread Analyzer] Analysis failed:', err)
+    // Ensure analysisResults stays null on error
+    analysisResults.value = null
   }
+}
+
+const handleClose = async () => {
+  // Cancel analysis if still running
+  if (isAnalyzing.value) {
+    await cancelAnalysis()
+  }
+  showSidebar.value = false
 }
 
 onMounted(() => {

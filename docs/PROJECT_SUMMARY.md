@@ -184,6 +184,7 @@ ec16089 Fix image filtering and UI adjustments
 2. **No historical storage** yet (planned for Phase 4)
 3. **No export functionality** yet (planned for Phase 4)
 4. **Limited to Chrome** (Firefox port planned for Phase 5)
+5. **"Try Again" button issue**: After clicking "Try Again" on error state, the UI may not properly refresh to show loading state. The API call is initiated but the sidebar remains stuck on the error page. Investigation needed in the message passing flow between content script and background script.
 
 ## Next Steps (Phase 4)
 
