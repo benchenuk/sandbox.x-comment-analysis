@@ -2,24 +2,26 @@
   <div :class="['x-analyzer-container', theme]">
     <AnalyzerButton 
       v-if="isOnThreadPage && !showSidebar"
-      @click="startAnalysis"
+      @click="handleButtonClick"
       :is-analyzing="isAnalyzing"
+      :has-results="!!analysisResults"
     />
     <SidebarPanel
       v-if="showSidebar"
-      :key="sidebarKey"
       :results="analysisResults"
       :is-loading="isAnalyzing"
       :error="error"
       :progress="progress"
+      :sidebar-width="sidebarWidth"
       @close="handleClose"
       @retry="startAnalysis"
+      @update-width="updateSidebarWidth"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import AnalyzerButton from './components/AnalyzerButton.vue'
 import SidebarPanel from './components/SidebarPanel.vue'
 import { useXTheme } from './composables/useXTheme'
@@ -30,52 +32,79 @@ const { theme } = useXTheme()
 const { analyzeThread, cancelAnalysis, isAnalyzing, error, progress } = useThreadAnalyzer()
 
 const showSidebar = ref(false)
+const sidebarWidth = ref(450)
 const analysisResults = ref<AnalysisResult | null>(null)
 const currentPath = ref(window.location.pathname)
-const sidebarKey = ref(0)
 
 const isOnThreadPage = computed(() => {
-  // Match patterns like /username/status/123456
   return /\/[^/]+\/status\/\d+/.test(currentPath.value)
 })
 
 let pathObserver: MutationObserver | null = null
 
-const startAnalysis = async () => {
-  showSidebar.value = true
+// Reset state when landing on any thread page
+const resetState = () => {
+  if (isAnalyzing.value) {
+    cancelAnalysis()
+  }
   analysisResults.value = null
-  sidebarKey.value++ // Force sidebar re-render to clear error state
+  showSidebar.value = false
+}
+
+const startAnalysis = async () => {
+  if (analysisResults.value || isAnalyzing.value) {
+    return
+  }
   
   try {
     analysisResults.value = await analyzeThread()
   } catch (err) {
-    // Error is already set in the composable
     console.error('[X Thread Analyzer] Analysis failed:', err)
-    // Ensure analysisResults stays null on error
     analysisResults.value = null
   }
 }
 
-const handleClose = async () => {
-  // Cancel analysis if still running
-  if (isAnalyzing.value) {
-    await cancelAnalysis()
+const handleButtonClick = () => {
+  showSidebar.value = true
+  
+  if (!analysisResults.value && !isAnalyzing.value) {
+    startAnalysis()
   }
+}
+
+const handleClose = () => {
+  // Just hide the sidebar - analysis continues in background
   showSidebar.value = false
 }
 
+const updateSidebarWidth = (width: number) => {
+  sidebarWidth.value = width
+}
+
+// Watch for thread changes and reset
+watch(currentPath, (newPath, oldPath) => {
+  const newThreadId = newPath.match(/\/status\/(\d+)/)?.[1]
+  const oldThreadId = oldPath.match(/\/status\/(\d+)/)?.[1]
+  
+  // Reset if we landed on a different thread
+  if (newThreadId && newThreadId !== oldThreadId) {
+    resetState()
+  }
+})
+
 onMounted(() => {
   console.log('[X Thread Analyzer] Extension mounted successfully')
+  
+  // Reset on initial load if on a thread page
+  if (isOnThreadPage.value) {
+    resetState()
+  }
   
   // Watch for URL changes (X is a SPA)
   pathObserver = new MutationObserver(() => {
     const newPath = window.location.pathname
     if (newPath !== currentPath.value) {
       currentPath.value = newPath
-      // Close sidebar when navigating away from thread
-      if (!isOnThreadPage.value) {
-        showSidebar.value = false
-      }
     }
   })
   

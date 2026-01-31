@@ -8,13 +8,21 @@
 
 - **UI**: Lowered floating button position (16px from bottom) to align with X's chat icon
 - **PWA Support**: Extended content script to work across all X pages (`https://x.com/*` instead of just status pages)
-- **UI Cleanup**: Removed non-functional pin button from sidebar header
-- **Performance**: Non-blocking analysis with cancellation support
-  - Removed retry mechanism (single API call only)
-  - Increased default timeout to 5 minutes (300 seconds)
-  - Added AbortController for request cancellation
-  - Cancel analysis automatically when sidebar closes
-  - Added message: "Analysis may take up to a few minutes. Closing this will cancel the request."
+- **Performance**: Non-blocking analysis with background execution
+  - Analysis continues in background when sidebar is closed
+  - Removed "Closing this will abort the request" message
+  - Clicking button during analysis reopens sidebar to show progress
+  - Clicking button after completion shows "View Analysis" with green styling
+- **UI**: Resizable sidebar (Phase 4 feature - completed)
+  - Drag handle on left edge of sidebar
+  - Min width: 350px, Max width: 700px
+  - Default: 450px
+  - Width persists during session
+- **UX**: Simplified sidebar interaction
+  - Removed pin feature (redundant)
+  - Removed click-away to close behavior
+  - Sidebar only closes via close button (X)
+  - Button always hidden when sidebar is visible
 - **Security**: API key storage improved
   - Switched from chrome.storage.sync to chrome.storage.local
   - API key no longer synced to Google cloud
@@ -23,6 +31,9 @@
   - Default visible comments reduced from 5 to 3 (more compact)
   - "+X more" is now clickable to expand/collapse
   - Shows "Show less" button when expanded
+- **State Management**: Auto-reset on thread navigation
+  - Analysis state clears when navigating to different thread
+  - Prevents orphaned analyses and stale results
 
 ## What Was Built
 
@@ -71,6 +82,9 @@ A Chrome extension that analyzes X/Twitter thread comments using LLM APIs to:
 ✅ Bullet-point summary formatting  
 ✅ SVG icons throughout (no emojis)  
 ✅ Floating button positioned to align with X's UI (bottom: 16px, right: 80px)  
+✅ Resizable sidebar (350px - 700px)  
+✅ Background analysis (continues when sidebar closed)  
+✅ Auto-reset state on thread navigation  
 
 ## Project Structure
 
@@ -194,18 +208,16 @@ ec16089 Fix image filtering and UI adjustments
 
 ## Known Issues & Limitations
 
-1. **Sidebar width is fixed** at 450px (resizable planned for Phase 4)
-2. **No historical storage** yet (planned for Phase 4)
-3. **No export functionality** yet (planned for Phase 4)
-4. **Limited to Chrome** (Firefox port planned for Phase 5)
-5. **"Try Again" button issue**: After clicking "Try Again" on error state, the UI may not properly refresh to show loading state. The API call is initiated but the sidebar remains stuck on the error page. Investigation needed in the message passing flow between content script and background script.
+1. **No historical storage** yet (planned for Phase 4)
+2. **No export functionality** yet (planned for Phase 4)
+3. **Limited to Chrome** (Firefox port planned for Phase 5)
+4. **"Try Again" button issue**: After clicking "Try Again" on error state, the UI may not properly refresh to show loading state. The API call is initiated but the sidebar remains stuck on the error page. Investigation needed in the message passing flow between content script and background script.
 
 ## Next Steps (Phase 4)
 
 ### Enhancement Features
 - Historical analysis storage
 - Export results (JSON, PDF)
-- Resizable sidebar
 - Keyboard shortcuts
 - Analysis result caching
 

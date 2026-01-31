@@ -67,11 +67,18 @@
   - Retry button
   - Settings button (opens options page)
 - [x] Test theme switching (light/dark)
-- [ ] ~~Add resize handle for sidebar~~ → Moved to Phase 4
-- [x] Implement pin/unpin functionality (removed - not usable)
+- [x] Add resize handle for sidebar (moved from Phase 4)
+  - Drag handle on left edge
+  - Min/max width constraints (350px - 700px)
+  - Default: 450px
+- [ ] ~~Implement pin/unpin functionality~~ → Removed (redundant)
 - [x] Add "show more" functionality for categories
   - Expandable comment lists (3 default, click to expand)
   - "+X more" / "Show less" toggle button
+- [x] Background analysis support
+  - Analysis continues when sidebar closed
+  - Button shows "Analyzing..." or "View Analysis" state
+  - Reopening sidebar shows current progress/results
 
 #### 2.4 Settings Enhancement ✅
 - [x] Add validation for API endpoint URL
@@ -148,9 +155,9 @@
 - [ ] Word cloud generation
 
 #### 4.2 UX Improvements
-- [ ] **Resizable sidebar** ⭐ HIGH PRIORITY
+- [x] **Resizable sidebar** ⭐ HIGH PRIORITY (completed early)
   - Drag handle on sidebar edge
-  - Min/max width constraints (300px - 600px)
+  - Min/max width constraints (350px - 700px)
   - Persist width preference
   - Smooth resize animation
 - [ ] Keyboard shortcuts
@@ -231,14 +238,17 @@
 11. ✅ Fixed empty category items display
 12. ✅ Replaced all emojis with SVG icons
 13. ✅ PWA support (works on all X pages)
-14. ✅ Performance: Non-blocking analysis with cancellation
+14. ✅ Performance: Non-blocking analysis with background execution
 15. ✅ Expandable category comments (3 default, click to expand)
 16. ✅ Security: API key stored locally only (chrome.storage.local)
+17. ✅ Resizable sidebar (350px - 700px, drag handle on edge)
+18. ✅ Background analysis (continues when sidebar closed)
+19. ✅ Auto-reset state on thread navigation
+20. ✅ Simplified UX: removed pin feature, click-away behavior
 
 ### Known Issues
-1. ~~Sidebar width is fixed at 380px~~ ✅ Fixed (now 450px)
-2. Sidebar width is still fixed (resizable planned for Phase 4)
-3. **"Try Again" button issue**: After clicking "Try Again" on error state, the UI may not properly refresh to show loading state. The API call is initiated but the sidebar remains stuck on the error page. Investigation needed in the message passing flow between content script and background script.
+1. ~~Sidebar width is fixed~~ ✅ Fixed (now resizable: 350px - 700px)
+2. **"Try Again" button issue**: After clicking "Try Again" on error state, the UI may not properly refresh to show loading state. The API call is initiated but the sidebar remains stuck on the error page. Investigation needed in the message passing flow between content script and background script.
 
 ### Recent Changes
 - Enhanced DOM scraping with deduplication and image filtering
@@ -295,8 +305,8 @@
 | 2026-01-30 | Phase 2 | Complete | Core functionality implemented |
 | 2026-01-30 | Phase 3 | Complete | Testing and quality assurance |
 | 2026-01-31 | Phase 3 | Complete | Performance improvements, PWA support, expandable categories |
-| 2026-01-31 | Phase 4 | Starting | Enhancement features |
+| 2026-01-31 | Phase 4 | In Progress | Resizable sidebar, background analysis, UX improvements |
 
 ---
 
-**Next Action**: Continue Phase 3 testing, fix any issues discovered
+**Next Action**: Continue Phase 4 enhancements (historical storage, export, keyboard shortcuts)

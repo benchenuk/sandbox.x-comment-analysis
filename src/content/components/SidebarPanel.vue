@@ -1,9 +1,19 @@
 <template>
-  <div class="sidebar-panel">
+  <div 
+    class="sidebar-panel"
+    :style="{ width: `${sidebarWidth}px` }"
+  >
+    <!-- Resize Handle -->
+    <div 
+      class="resize-handle"
+      @mousedown="startResize"
+      title="Drag to resize"
+    ></div>
+    
     <div class="sidebar-header">
       <h2>Comment Analysis</h2>
       <div class="header-actions">
-        <button class="close-button" @click="emit('close')" :title="isLoading ? 'Cancel & Close' : 'Close'">
+        <button class="close-button" @click="emit('close')" title="Close">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6L18 18"/>
           </svg>
@@ -19,7 +29,6 @@
           <div class="progress-bar" :style="{ width: `${progress}%` }"></div>
         </div>
         <p class="progress-text">{{ getProgressText(progress) }}</p>
-        <p class="cancel-hint">Analysis may take up to a few minutes. Closing this will cancel the request.</p>
       </div>
       
       <!-- Error State -->
@@ -58,21 +67,48 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import LoadingState from './LoadingState.vue'
 import AnalysisResults from './AnalysisResults.vue'
 import type { AnalysisResult } from '../../types'
 
-defineProps<{
+const props = defineProps<{
   results: AnalysisResult | null
   isLoading: boolean
   error: string | null
   progress: number
+  sidebarWidth: number
 }>()
 
 const emit = defineEmits<{
   close: []
   retry: []
+  updateWidth: [width: number]
 }>()
+
+const isResizing = ref(false)
+
+const startResize = (e: MouseEvent) => {
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = props.sidebarWidth
+  
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isResizing.value) return
+    const delta = startX - e.clientX
+    const newWidth = Math.max(350, Math.min(700, startWidth + delta))
+    emit('updateWidth', newWidth)
+  }
+  
+  const handleMouseUp = () => {
+    isResizing.value = false
+    document.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseup', handleMouseUp)
+  }
+  
+  document.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseup', handleMouseUp)
+}
 
 const getProgressText = (progress: number): string => {
   if (progress < 20) return 'Scraping comments...'
@@ -97,6 +133,24 @@ const getProgressText = (progress: number): string => {
   flex-direction: column;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 9999;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover {
+  background: var(--x-primary, #1d9bf0);
+  opacity: 0.3;
 }
 
 .sidebar-header {
@@ -171,16 +225,6 @@ const getProgressText = (progress: number): string => {
   margin-top: 12px;
   font-size: 14px;
   color: var(--x-text-secondary, #536471);
-}
-
-.cancel-hint {
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--x-text-secondary, #71767b);
-  font-style: italic;
-  text-align: center;
-  line-height: 1.4;
-  padding: 0 20px;
 }
 
 /* Error State */

@@ -2,7 +2,7 @@
   <div class="loading-state">
     <div class="spinner-large"></div>
     <p>Analyzing comments...</p>
-    <p class="sub-text">This may take a few moments</p>
+    <p class="sub-text">This may take up a few minues, come back later.</p>
   </div>
 </template>
 

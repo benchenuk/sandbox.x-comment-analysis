@@ -1,24 +1,40 @@
 <template>
   <button 
-    :class="['analyzer-button', { 'analyzing': isAnalyzing }]"
+    :class="['analyzer-button', { 
+      'analyzing': isAnalyzing,
+      'has-results': hasResults && !isAnalyzing
+    }]"
     @click="$emit('click')"
   >
     <span v-if="isAnalyzing" class="spinner"></span>
+    <svg v-else-if="hasResults" class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
     <svg v-else class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
     </svg>
-    <span class="label">{{ isAnalyzing ? 'Analyzing...' : 'Comment Analysis' }}</span>
+    <span class="label">{{ buttonLabel }}</span>
   </button>
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed } from 'vue'
+
+const props = defineProps<{
   isAnalyzing: boolean
+  hasResults: boolean
 }>()
 
 defineEmits<{
   click: []
 }>()
+
+const buttonLabel = computed(() => {
+  if (props.isAnalyzing) return 'Analyzing...'
+  if (props.hasResults) return 'View Analysis'
+  return 'Comment Analysis'
+})
 </script>
 
 <style scoped>
@@ -51,6 +67,15 @@ defineEmits<{
 .analyzer-button.analyzing {
   background: linear-gradient(135deg, #8b98a5 0%, #6b7b8a 100%);
   cursor: not-allowed;
+}
+
+.analyzer-button.has-results {
+  background: linear-gradient(135deg, #00ba7c 0%, #00a36c 100%);
+  box-shadow: 0 4px 12px rgba(0, 186, 124, 0.4);
+}
+
+.analyzer-button.has-results:hover {
+  box-shadow: 0 6px 20px rgba(0, 186, 124, 0.5);
 }
 
 .icon {
