@@ -15,6 +15,10 @@
   - Added AbortController for request cancellation
   - Cancel analysis automatically when sidebar closes
   - Added message: "Analysis may take up to a few minutes. Closing this will cancel the request."
+- **Security**: API key storage improved
+  - Switched from chrome.storage.sync to chrome.storage.local
+  - API key no longer synced to Google cloud
+  - Credentials stay on local machine only
 - **UI**: Made category comments expandable
   - Default visible comments reduced from 5 to 3 (more compact)
   - "+X more" is now clickable to expand/collapse

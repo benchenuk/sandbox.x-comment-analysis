@@ -233,6 +233,7 @@
 13. ✅ PWA support (works on all X pages)
 14. ✅ Performance: Non-blocking analysis with cancellation
 15. ✅ Expandable category comments (3 default, click to expand)
+16. ✅ Security: API key stored locally only (chrome.storage.local)
 
 ### Known Issues
 1. ~~Sidebar width is fixed at 380px~~ ✅ Fixed (now 450px)
