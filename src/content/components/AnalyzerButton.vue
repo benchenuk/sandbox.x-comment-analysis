@@ -24,7 +24,7 @@ defineEmits<{
 <style scoped>
 .analyzer-button {
   position: fixed;
-  bottom: 24px;
+  bottom: 16px;
   right: 80px;
   z-index: 9999;
   display: flex;

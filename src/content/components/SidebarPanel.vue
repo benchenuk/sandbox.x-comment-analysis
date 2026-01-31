@@ -1,20 +1,8 @@
 <template>
-  <div :class="['sidebar-panel', { 'pinned': isPinned }]">
+  <div class="sidebar-panel">
     <div class="sidebar-header">
       <h2>Comment Analysis</h2>
       <div class="header-actions">
-        <button 
-          class="pin-button"
-          @click="togglePin"
-          :title="isPinned ? 'Unpin' : 'Pin'"
-        >
-          <svg v-if="isPinned" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z"/>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M16 12V4H17V2H7V4H8V12L6 14V16H11.2V22H12.8V16H18V14L16 12Z"/>
-          </svg>
-        </button>
         <button class="close-button" @click="emit('close')" title="Close">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6L18 18"/>
@@ -69,7 +57,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import LoadingState from './LoadingState.vue'
 import AnalysisResults from './AnalysisResults.vue'
 import type { AnalysisResult } from '../../types'
@@ -83,16 +70,8 @@ defineProps<{
 
 const emit = defineEmits<{
   close: []
-  pin: [pinned: boolean]
   retry: []
 }>()
-
-const isPinned = ref(true)
-
-const togglePin = () => {
-  isPinned.value = !isPinned.value
-  emit('pin', isPinned.value)
-}
 
 const getProgressText = (progress: number): string => {
   if (progress < 20) return 'Scraping comments...'
@@ -139,7 +118,6 @@ const getProgressText = (progress: number): string => {
   gap: 8px;
 }
 
-.pin-button,
 .close-button {
   background: none;
   border: none;
@@ -154,7 +132,6 @@ const getProgressText = (progress: number): string => {
   justify-content: center;
 }
 
-.pin-button:hover,
 .close-button:hover {
   background: var(--x-bg-hover, rgba(0, 0, 0, 0.05));
   color: var(--x-text-primary, #0f1419);

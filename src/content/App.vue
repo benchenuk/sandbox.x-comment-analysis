@@ -12,7 +12,6 @@
       :error="error"
       :progress="progress"
       @close="showSidebar = false"
-      @pin="handlePin"
       @retry="startAnalysis"
     />
   </div>
@@ -42,10 +41,6 @@ const startAnalysis = async () => {
     // Error is already set in the composable
     console.error('[X Thread Analyzer] Analysis failed:', err)
   }
-}
-
-const handlePin = (pinned: boolean) => {
-  console.log('[X Thread Analyzer] Sidebar pinned:', pinned)
 }
 
 onMounted(() => {

@@ -1,8 +1,14 @@
 # X Comment Analysis - Project Summary
 
-**Last Updated**: 2026-01-30  
+**Last Updated**: 2026-01-31  
 **Current Phase**: Phase 3 Complete  
 **Status**: Production-ready, fully functional
+
+## Recent Updates (Jan 31, 2026)
+
+- **UI**: Lowered floating button position (16px from bottom) to align with X's chat icon
+- **PWA Support**: Extended content script to work across all X pages (`https://x.com/*` instead of just status pages)
+- **UI Cleanup**: Removed non-functional pin button from sidebar header
 
 ## What Was Built
 
@@ -47,10 +53,10 @@ A Chrome extension that analyzes X/Twitter thread comments using LLM APIs to:
 ✅ Automatic light/dark theme detection  
 ✅ Loading states with progress bar  
 ✅ Error states with retry button  
-✅ Pin/unpin sidebar functionality  
 ✅ Minimalistic category display (no headers, no emojis)  
 ✅ Bullet-point summary formatting  
 ✅ SVG icons throughout (no emojis)  
+✅ Floating button positioned to align with X's UI (bottom: 16px, right: 80px)  
 
 ## Project Structure
 
@@ -121,6 +127,12 @@ For local development, `http://localhost:*/` is already in `host_permissions`. F
 ]
 ```
 
+### PWA Support
+The extension works on all X/Twitter pages including PWA:
+- Content script matches: `https://x.com/*` and `https://twitter.com/*`
+- Works on status pages, home feeds, profiles, and PWA app
+- Thread detection happens at runtime based on URL pattern
+
 ### API Request Format
 ```json
 {
@@ -158,6 +170,7 @@ For local development, `http://localhost:*/` is already in `host_permissions`. F
 ## Git History (Recent)
 
 ```
+[COMMIT_HASH] Quick wins: PWA support, button alignment, remove pin button
 6b86235 UI refinements: button position and remove Categories header
 ec16089 Fix image filtering and UI adjustments
 9290e68 Update to X Comment Analysis and add image filtering
