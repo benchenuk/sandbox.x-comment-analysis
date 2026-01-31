@@ -9,6 +9,16 @@
 - **UI**: Lowered floating button position (16px from bottom) to align with X's chat icon
 - **PWA Support**: Extended content script to work across all X pages (`https://x.com/*` instead of just status pages)
 - **UI Cleanup**: Removed non-functional pin button from sidebar header
+- **Performance**: Non-blocking analysis with cancellation support
+  - Removed retry mechanism (single API call only)
+  - Increased default timeout to 5 minutes (300 seconds)
+  - Added AbortController for request cancellation
+  - Cancel analysis automatically when sidebar closes
+  - Added message: "Analysis may take up to a few minutes. Closing this will cancel the request."
+- **UI**: Made category comments expandable
+  - Default visible comments reduced from 5 to 3 (more compact)
+  - "+X more" is now clickable to expand/collapse
+  - Shows "Show less" button when expanded
 
 ## What Was Built
 

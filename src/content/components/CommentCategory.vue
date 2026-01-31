@@ -7,7 +7,7 @@
     
     <div class="category-comments">
       <div 
-        v-for="comment in category.comments.slice(0, 5)" 
+        v-for="comment in visibleComments" 
         :key="comment.id" 
         class="comment-item"
       >
@@ -18,19 +18,34 @@
         <p class="comment-text">{{ comment.text }}</p>
       </div>
       
-      <div v-if="category.comments.length > 5" class="more-indicator">
-        +{{ category.comments.length - 5 }} more
-      </div>
+      <button 
+        v-if="category.comments.length > 3" 
+        class="more-toggle"
+        @click="isExpanded = !isExpanded"
+      >
+        {{ isExpanded ? 'Show less' : `+${category.comments.length - 3} more` }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { Category } from '../../types'
 
-defineProps<{
+const props = defineProps<{
   category: Category
 }>()
+
+const isExpanded = ref(false)
+const INITIAL_DISPLAY_COUNT = 3
+
+const visibleComments = computed(() => {
+  if (isExpanded.value) {
+    return props.category.comments
+  }
+  return props.category.comments.slice(0, INITIAL_DISPLAY_COUNT)
+})
 </script>
 
 <style scoped>
@@ -103,10 +118,22 @@ defineProps<{
   color: var(--x-text-primary, #0f1419);
 }
 
-.more-indicator {
+.more-toggle {
   font-size: 12px;
   color: var(--x-primary, #1d9bf0);
   padding: 4px 0 4px 12px;
   border-left: 2px solid var(--x-border, #eff3f4);
+  background: none;
+  border: none;
+  border-left: 2px solid var(--x-border, #eff3f4);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.more-toggle:hover {
+  color: var(--x-primary-hover, #1a8cd8);
+  text-decoration: underline;
 }
 </style>
