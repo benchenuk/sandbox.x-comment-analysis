@@ -2,7 +2,7 @@
 
 Chrome extension to analyze X/Twitter threads using LLM. Summarizes, categorizes, and filters comments while identifying bots and trolls.
 
-<img src="docs/screenshot.png" width="500">
+<img src="docs/screenshot.png" width="500"><img src="docs/options.png" width="500">
 
 ## Features
 
