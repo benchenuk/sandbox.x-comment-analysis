@@ -2,6 +2,8 @@
 
 Chrome extension to analyze X/Twitter threads using LLM. Summarizes, categorizes, and filters comments while identifying bots and trolls.
 
+<img src="docs/screenshot.png" width="500">
+
 ## Features
 
 - 🔍 **Automatic Thread Detection**: Detects when you're viewing an X/Twitter thread
@@ -15,16 +17,14 @@ Chrome extension to analyze X/Twitter threads using LLM. Summarizes, categorizes
 - 🎨 **X-Native Design**: 
   - Follows X's design language
   - Automatic light/dark theme detection
-  - Fixed sidebar that persists while browsing
 - ⚙️ **Configurable Settings**:
   - API endpoint (supports OpenAI and compatible APIs)
-  - Model selection (gpt-4, gpt-3.5-turbo, etc.)
+  - Model selection
   - API key authentication
   - Comment limit (10-100)
   - Request timeout (5-120 seconds)
   - Theme preference (Auto/Light/Dark)
 - 🔄 **Robust API Handling**:
-  - Retry logic with exponential backoff (3 attempts)
   - Configurable timeout
   - User-friendly error messages
   - Progress bar during analysis
@@ -37,7 +37,7 @@ Chrome extension to analyze X/Twitter threads using LLM. Summarizes, categorizes
 - Node.js 18+ and npm
 - An OpenAI-compatible API endpoint (OpenAI, Azure, local LLM, etc.)
 
-### Installation
+### Development Installation
 
 1. **Clone and install dependencies**:
 ```bash
@@ -64,41 +64,25 @@ npm run build
 
 5. **Use the extension**:
    - Navigate to any X/Twitter thread (e.g., `x.com/username/status/123`)
-   - Click the floating "Analyze Thread" button (bottom-right)
+   - Click the floating "Comment Analysis" button (bottom-right)
    - View analysis results in the sidebar
 
 ## Configuration
 
 ### API Endpoint Setup
 
-The extension works with any OpenAI-compatible API. You can enter either:
-- **Base URL**: `https://api.openai.com/v1` (recommended)
-- **Full URL**: `https://api.openai.com/v1/chat/completions`
-
-The extension will automatically append `/chat/completions` if needed.
-
-#### Examples:
-
-**OpenAI**:
-- API Base URL: `https://api.openai.com/v1`
-- API Key: Your OpenAI API key (starts with `sk-`)
-- Model: `gpt-4` or `gpt-3.5-turbo`
+The extension works with any OpenAI-compatible API, local or remote:
 
 **Local LLM (e.g., using Ollama or similar)**:
 - API Base URL: `http://localhost:1234/v1`
 - API Key: (leave empty if not required)
 - Model: Model name your local server expects
 
-**Azure OpenAI**:
-- API Base URL: `https://your-resource.openai.azure.com/openai/deployments/your-deployment`
-- API Key: Your Azure API key
-- Model: (leave as default, Azure uses deployment name)
-
 ### Settings Fields
 
 - **API Base URL**: The base URL for your API endpoint
 - **API Key**: Authentication token (if required)
-- **Model**: AI model name (e.g., `gpt-4`, `gpt-3.5-turbo`, `claude-3-opus`)
+- **Model**: AI model name
 - **Max Comments**: Number of comments to analyze (10-100, default 50)
 - **Timeout (ms)**: API request timeout in milliseconds (5000-120000, default 30000)
 - **Theme**: UI theme preference (Auto/Light/Dark)
@@ -286,17 +270,6 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for detailed development phases.
 - ⌨️ Keyboard shortcuts
 - 🎨 Custom themes
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Run type checking: `npm run typecheck`
-5. Build and test: `npm run build`
-6. Commit your changes: `git commit -am 'Add feature'`
-7. Push to the branch: `git push origin feature-name`
-8. Submit a pull request
-
 ## Documentation
 
 - [Requirements](docs/REQUIREMENTS.md) - Detailed functional and non-functional requirements
@@ -317,4 +290,4 @@ For issues, questions, or feature requests:
 
 ---
 
-**Note**: This extension is not affiliated with X Corp (formerly Twitter) or OpenAI. It is an independent project for educational and research purposes.
+**Note**: This extension is not affiliated with X Corp. It is an independent project for educational and research purposes.
