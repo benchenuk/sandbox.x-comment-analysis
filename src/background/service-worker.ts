@@ -1,4 +1,5 @@
 import type { XComment, AnalysisResult } from '../types'
+import * as dirtyJSON from 'dirty-json'
 
 interface LightweightComment {
   id: string
@@ -125,7 +126,7 @@ Use engagement metrics (likes, reposts, replies) to identify high-impact comment
 
 Analyze the provided X/Twitter thread comments and provide:
 1. A concise summary (2-3 sentences) describing the main themes and sentiment
-2. Categories of comments (e.g., "Support", "Questions", "Criticism", "Off-topic")
+2. Categories (in sensible order) of comments based on sentiments, insights, interactions, etc. (e.g., "Support", "Questions", "Criticism", "Off-topic").  
 3. Identification of potential bots/trolls
 4. Key insights and sentiment
 
@@ -133,9 +134,33 @@ IMPORTANT: Return ONLY raw JSON without markdown formatting, code blocks, or bac
 
 Return JSON with these fields:
 - summary: string (summary, insights and sentiment)
-- categories: categorised array of {name, comments: [{id: string}]} where comments contain only the ID
+- categories: array of {name, comments: [{id: string}]} where comments contain ONLY the ID field 
 - filteredCount: number
-- analyzedCount: number`
+- analyzedCount: number
+
+EXAMPLE RESPONSE FORMAT:
+{
+  "summary": "The discussion revolves around appreciation for the app support...",
+  "categories": [
+    {
+      "name": "Support",
+      "comments": [
+        {"id": "123456789"},
+        {"id": "987654321"}
+      ]
+    },
+    {
+      "name": "Questions",
+      "comments": [
+        {"id": "111222333"}
+      ]
+    }
+  ],
+  "filteredCount": 5,
+  "analyzedCount": 20
+}
+
+CRITICAL: Comments in categories must ONLY contain the ID field like {"id": "comment-id-here"}, NOT the full text.`
       },
       {
         role: 'user',
@@ -208,54 +233,17 @@ Return JSON with these fields:
     if (data.choices && data.choices[0]?.message?.content) {
       // OpenAI/compatible API format
       const content = data.choices[0].message.content
+      const rawContentForDebug = content.substring(0, 3000) // Keep first 3000 chars
 
-      // Try to parse JSON from content (strip markdown code blocks first)
+      // Parse JSON from content - use dirty-json for robust parsing
+      let parsed: any
       try {
         const cleanedContent = stripMarkdownCodeBlocks(content)
-
-        const parsed = JSON.parse(cleanedContent)
-
-        // Process categories - reconstruct full comments from cache using IDs
-        const processedCategories = (parsed.categories || []).map((cat: any) => ({
-          name: cat.name || 'Uncategorized',
-          icon: '', // Icons removed from feature
-          comments: (cat.comments || []).map((comment: any) => {
-            // Comment from LLM should have ID only - reconstruct from cache
-            if (comment.id) {
-              const originalComment = commentsCache.find(c => c.id === comment.id)
-              if (originalComment) {
-                return { ...originalComment, category: cat.name }
-              }
-              console.warn(`[X Thread Analyzer] Comment ID ${comment.id} not found in cache, skipping`)
-            }
-            return null
-          }).filter(Boolean)
-        })).filter((cat: any) => cat.comments.length > 0)
-
-        // If no valid categories after reconstruction, create fallback
-        if (processedCategories.length === 0) {
-          console.warn('[X Thread Analyzer] No valid categories after reconstruction, using fallback')
-          processedCategories.push({
-            name: 'All Comments',
-            icon: '',
-            comments: commentsCache.slice(0, 10)
-          })
-        }
-
-        analysisData = {
-          summary: parsed.summary || 'Analysis completed',
-          categories: processedCategories,
-          stats: {
-            totalComments: commentsCache.length,
-            filteredComments: parsed.filteredCount || 0,
-            analyzedComments: parsed.analyzedCount || commentsCache.length
-          }
-        }
+        parsed = dirtyJSON.parse(cleanedContent)
       } catch {
-        // If not JSON, use content as summary with fallback categories
-        console.warn('[X Thread Analyzer] Failed to parse LLM response as JSON, using fallback')
+        // Fallback: if even repair fails, use fallback with raw content in summary
         analysisData = {
-          summary: content,
+          summary: `Analysis completed\n\n[RAW LLM RESPONSE]:\n${rawContentForDebug}`,
           categories: [{
             name: 'All Comments',
             icon: '',
@@ -266,6 +254,44 @@ Return JSON with these fields:
             filteredComments: 0,
             analyzedComments: commentsCache.length
           }
+        }
+        return analysisData
+      }
+
+      // Process categories - reconstruct full comments from cache using IDs
+      const processedCategories = (parsed.categories || []).map((cat: any) => ({
+        name: cat.name || 'Uncategorized',
+        icon: '',
+        comments: (cat.comments || []).map((comment: any) => {
+          if (comment.id) {
+            const originalComment = commentsCache.find(c => c.id === comment.id)
+            if (originalComment) {
+              return { ...originalComment, category: cat.name }
+            }
+            console.warn(`[X Thread Analyzer] Comment ID ${comment.id} not found in cache, skipping`)
+          }
+          return null
+        }).filter(Boolean)
+      })).filter((cat: any) => cat.comments.length > 0)
+
+      // If no valid categories after reconstruction, create fallback
+      if (processedCategories.length === 0) {
+        processedCategories.push({
+          name: 'All Comments',
+          icon: '',
+          comments: commentsCache.slice(0, 10)
+        })
+      }
+
+      // Always append raw LLM response to summary for debugging
+      analysisData = {
+        summary: parsed.summary || 'Analysis completed',
+        // summary: `${parsed.summary || 'Analysis completed'}\n\n[RAW LLM RESPONSE]:\n${rawContentForDebug}`,
+        categories: processedCategories,
+        stats: {
+          totalComments: commentsCache.length,
+          filteredComments: parsed.filteredCount || 0,
+          analyzedComments: parsed.analyzedCount || commentsCache.length
         }
       }
     } else {
