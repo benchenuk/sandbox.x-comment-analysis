@@ -216,10 +216,24 @@ export function useThreadAnalyzer() {
       progress.value = 30
       console.log(`[X Thread Analyzer] Sending ${comments.length} comments to API`)
       
-      // Step 2: Send to background script for API call
+      // Step 2: Build lightweight payload for LLM
+      // Format: ID | author | text | likes | reposts | replies
+      const lightweightComments = comments.map(c => ({
+        id: c.id,
+        author: c.author,
+        text: c.text,
+        likes: c.likes,
+        reposts: c.reposts,
+        replies: c.replies || 0
+      }))
+      
+      // Step 3: Send to background script for API call with full cache for reconstruction
       const response = await chrome.runtime.sendMessage({
         type: 'ANALYZE_COMMENTS',
-        payload: { comments }
+        payload: { 
+          comments: lightweightComments,
+          commentsCache: comments
+        }
       })
       
       // Check if analysis was cancelled
