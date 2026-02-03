@@ -342,22 +342,43 @@ const response = await analyzeComments(lightweightComments, fullCommentsCache)
 
 ## ADR-017: LLM Response Parsing
 
-**Decision**: Strip markdown code blocks before JSON parsing
+**Decision**: Use dirty-json library for robust parsing of malformed LLM responses
 
 **Rationale**:
-- LLMs often wrap JSON responses in markdown (```json ... ```)
-- Standard JSON.parse() fails on wrapped content
-- Defensive parsing improves reliability without requiring prompt changes alone
-- Handles multiple common wrapper formats (```json, ```javascript, ```)
+- LLMs often generate malformed JSON (extra brackets, missing braces, trailing commas)
+- Standard JSON.parse() is too strict for LLM outputs
+- dirty-json handles common corruption patterns: bracket mismatches, unclosed objects, syntax errors
+- Better than jsonrepair for handling LLM-generated errors
 
 **Implementation**:
 ```typescript
-const stripMarkdownCodeBlocks = (content: string): string => {
-  // Remove opening blocks: ```json, ```javascript, ```
-  // Remove closing blocks: ```
-  // Returns cleaned content ready for JSON.parse()
-}
+import * as dirtyJSON from 'dirty-json'
+
+// Strip markdown code blocks first
+const cleanedContent = stripMarkdownCodeBlocks(content)
+
+// Parse with dirty-json (handles: }], trailing commas, etc.)
+const parsed = dirtyJSON.parse(cleanedContent)
 ```
+
+**Status**: ✅ Implemented
+
+---
+
+## ADR-018: JSON Parsing Pipeline
+
+**Decision**: Two-stage parsing pipeline with markdown stripping + dirty-json
+
+**Flow**:
+1. Strip markdown code blocks (```json, ```)
+2. Parse with dirty-json (handles syntax errors)
+3. Validate required fields exist
+4. Reconstruct full comments from cache
+
+**Why not just dirty-json?**
+- Markdown blocks add noise that can confuse the parser
+- Cleaning first gives better results
+- Separation of concerns: formatting vs syntax
 
 **Status**: ✅ Implemented
 
