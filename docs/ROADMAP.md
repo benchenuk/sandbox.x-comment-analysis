@@ -245,6 +245,9 @@
 18. ✅ Background analysis (continues when sidebar closed)
 19. ✅ Auto-reset state on thread navigation
 20. ✅ Simplified UX: removed pin feature, click-away behavior
+21. ✅ **LLM payload optimization** (~70% reduction in token usage)
+22. ✅ **Markdown JSON parsing** (handles ```json wrappers)
+23. ✅ **Comment cache reconstruction** (preserves full data with lightweight LLM calls)
 
 ### Known Issues
 1. ~~Sidebar width is fixed~~ ✅ Fixed (now resizable: 350px - 700px)
@@ -306,6 +309,7 @@
 | 2026-01-30 | Phase 3 | Complete | Testing and quality assurance |
 | 2026-01-31 | Phase 3 | Complete | Performance improvements, PWA support, expandable categories |
 | 2026-01-31 | Phase 4 | In Progress | Resizable sidebar, background analysis, UX improvements |
+| 2026-02-03 | Phase 4 | In Progress | LLM payload optimization, JSON parsing reliability |
 
 ---
 

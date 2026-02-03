@@ -82,33 +82,40 @@ x-thread-analyzer/
 - Returns reactive theme ref
 
 ### 6. composables/useThreadAnalyzer.ts
-**Purpose**: Orchestrate analysis with enhanced scraping
+**Purpose**: Orchestrate analysis with enhanced scraping and optimized payload
 **Flow**:
 1. Scrape comments from DOM with deduplication
 2. Parse engagement metrics (handles K/M suffixes)
 3. Filter visible content only
 4. Sort by engagement score
-5. Send to background script
-6. Track progress (0-100%)
-7. Handle errors gracefully
+5. **Build lightweight payload** (ID, author, text, engagement only)
+6. Send lightweight comments + full cache to background script
+7. Track progress (0-100%)
+8. Handle errors gracefully
 **Features**:
 - Duplicate detection using tweet IDs
 - Visibility checks (skips hidden/promoted content)
 - Engagement parsing ("1.2K" → 1200)
+- **Lightweight comment format** (~70% payload reduction)
+- **Text truncation** (200 char limit for LLM efficiency)
+- **Full comment cache** passed separately for reconstruction
 - Detailed console logging
 
 ### 7. background/service-worker.ts
-**Purpose**: API proxy with retry logic
+**Purpose**: API proxy with optimized payload handling and robust parsing
 **Flow**:
 1. Listen for messages from content
 2. Read settings from storage (including timeout)
-3. Make fetch request with timeout (AbortController)
-4. Retry on failure (exponential backoff, 3 attempts)
-5. Transform OpenAI-compatible response
-6. Return data or error
+3. **Build lightweight prompt** with engagement metrics
+4. Make fetch request with timeout (AbortController)
+5. **Strip markdown code blocks** from LLM response
+6. **Parse and reconstruct** full comments from cache using IDs
+7. Return data or error
 **Features**:
 - Configurable request timeout (5-120 seconds)
-- Retry logic with exponential backoff
+- **LightweightComment interface** for type safety
+- **Markdown code block stripper** (handles ```json, ```javascript, ```)
+- **Local cache reconstruction** (preserves all original fields: timestamps, engagement, etc.)
 - User-friendly error messages (401, 429, 500+)
 - OpenAI API format support
 - Default settings initialization on install

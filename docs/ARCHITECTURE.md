@@ -302,6 +302,67 @@ This document records key architectural decisions and their rationale.
 
 ---
 
+## ADR-016: LLM Payload Optimization
+
+**Decision**: Send lightweight comment format to LLM, reconstruct full data locally from cache
+
+**Rationale**:
+- LLM response time directly correlates with prompt size
+- Sending full comment objects (timestamps, engagement, etc.) wastes tokens
+- Comments need only ID, author, text, and engagement metrics for analysis
+- Local cache can reconstruct full objects after receiving LLM response with IDs only
+- ~70% reduction in payload size (from ~15KB to ~5KB for 35 comments)
+
+**Implementation**:
+```typescript
+// Lightweight format sent to LLM
+interface LightweightComment {
+  id: string
+  author: string
+  text: string  // Truncated to 200 chars
+  likes: number
+  reposts: number
+  replies: number
+}
+
+// Full cache passed separately for reconstruction
+const response = await analyzeComments(lightweightComments, fullCommentsCache)
+
+// LLM returns: categories: [{name, icon, comments: [{id: string}]}]
+// Reconstruct locally: fullCommentsCache.find(c => c.id === comment.id)
+```
+
+**Trade-offs**:
+- Pros: Faster API responses, lower token costs, same UI display
+- Cons: Slightly more complex data flow, cache must stay in memory
+
+**Status**: ✅ Implemented
+
+---
+
+## ADR-017: LLM Response Parsing
+
+**Decision**: Strip markdown code blocks before JSON parsing
+
+**Rationale**:
+- LLMs often wrap JSON responses in markdown (```json ... ```)
+- Standard JSON.parse() fails on wrapped content
+- Defensive parsing improves reliability without requiring prompt changes alone
+- Handles multiple common wrapper formats (```json, ```javascript, ```)
+
+**Implementation**:
+```typescript
+const stripMarkdownCodeBlocks = (content: string): string => {
+  // Remove opening blocks: ```json, ```javascript, ```
+  // Remove closing blocks: ```
+  // Returns cleaned content ready for JSON.parse()
+}
+```
+
+**Status**: ✅ Implemented
+
+---
+
 ## Pending Decisions
 
 ### PD-001: Comment Caching
@@ -328,4 +389,5 @@ This document records key architectural decisions and their rationale.
 
 | Date | ADR | Status | Notes |
 |------|-----|--------|-------|
-| 2026-01-30 | ADR-001 to ADR-012 | Implemented | Phase 1 complete |
+| 2026-01-30 | ADR-001 to ADR-015 | Implemented | Phase 1 complete |
+| 2026-02-03 | ADR-016 | Implemented | LLM payload optimization |

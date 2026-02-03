@@ -66,19 +66,19 @@ const buildApiUrl = (baseEndpoint: string): string => {
 const stripMarkdownCodeBlocks = (content: string): string => {
   // Remove ```json or ``` at the start
   let cleaned = content.trim()
-  
+
   // Match opening code block (```json, ```javascript, ```, etc.)
   const openingMatch = cleaned.match(/^```(?:json|javascript|js)?\s*/i)
   if (openingMatch) {
     cleaned = cleaned.substring(openingMatch[0].length)
   }
-  
+
   // Match closing code block at the end
   const closingMatch = cleaned.match(/\s*```$/)
   if (closingMatch) {
     cleaned = cleaned.substring(0, cleaned.length - closingMatch[0].length)
   }
-  
+
   return cleaned.trim()
 }
 
@@ -124,7 +124,7 @@ const analyzeComments = async (
 Use engagement metrics (likes, reposts, replies) to identify high-impact comments when categorizing.
 
 Analyze the provided X/Twitter thread comments and provide:
-1. A concise summary (2-3 sentences)
+1. A concise summary (2-3 sentences) describing the main themes and sentiment
 2. Categories of comments (e.g., "Support", "Questions", "Criticism", "Off-topic")
 3. Identification of potential bots/trolls
 4. Key insights and sentiment
@@ -132,8 +132,8 @@ Analyze the provided X/Twitter thread comments and provide:
 IMPORTANT: Return ONLY raw JSON without markdown formatting, code blocks, or backticks.
 
 Return JSON with these fields:
-- summary: string
-- categories: array of {name, icon, comments: [{id: string}]} where comments contain only the ID
+- summary: string (summary, insights and sentiment)
+- categories: categorised array of {name, comments: [{id: string}]} where comments contain only the ID
 - filteredCount: number
 - analyzedCount: number`
       },
@@ -212,12 +212,13 @@ Return JSON with these fields:
       // Try to parse JSON from content (strip markdown code blocks first)
       try {
         const cleanedContent = stripMarkdownCodeBlocks(content)
+
         const parsed = JSON.parse(cleanedContent)
 
         // Process categories - reconstruct full comments from cache using IDs
         const processedCategories = (parsed.categories || []).map((cat: any) => ({
           name: cat.name || 'Uncategorized',
-          icon: cat.icon || '',
+          icon: '', // Icons removed from feature
           comments: (cat.comments || []).map((comment: any) => {
             // Comment from LLM should have ID only - reconstruct from cache
             if (comment.id) {
@@ -271,7 +272,7 @@ Return JSON with these fields:
       // Direct API response format - reconstruct from cache
       const processedCategories = (data.categories || []).map((cat: any) => ({
         name: cat.name || 'Uncategorized',
-        icon: cat.icon || '',
+        icon: '', // Icons removed from feature
         comments: (cat.comments || []).map((comment: any) => {
           if (comment.id) {
             const originalComment = commentsCache.find(c => c.id === comment.id)
